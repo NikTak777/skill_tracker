@@ -1,4 +1,11 @@
-FROM ubuntu:latest
-LABEL authors="Никита"
+FROM node:20-slim
 
-ENTRYPOINT ["top", "-b"]
+WORKDIR /app
+
+COPY package*.json /app/
+
+RUN npm install
+
+COPY . /app
+
+CMD ["npm", "start"]]
