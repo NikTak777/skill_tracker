@@ -56,3 +56,29 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+# Модель прогресса по задаче
+class Progress(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="progress_entries")
+    employee = models.ForeignKey(User, on_delete=models.CASCADE, related_name="progress_updates")
+    percent = models.PositiveSmallIntegerField(default=0)  # 0–100
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        verbose_name_plural = "Progress entries"
+        ordering = ["-created_at"]
+    def __str__(self):
+        return f"{self.task.title} — {self.percent}%"
+
+# Модель комментариев к задаче
+class Comment(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment by {self.author.username} on {self.task.title}"
