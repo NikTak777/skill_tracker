@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-
+# Модель пользователей
 class User(AbstractUser):
     class Role(models.TextChoices):
         MANAGER = "manager", "Manager"
@@ -19,3 +19,40 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+# Модель навыков/компетенций
+class Skill(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    def __str__(self):
+        return self.name
+
+# Модель задач
+class Task(models.Model):
+    class Status(models.TextChoices):
+        TODO = "todo", "To Do"
+        IN_PROGRESS = "in_progress", "In Progress"
+        DONE = "done", "Done"
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    skill = models.ForeignKey(Skill, on_delete=models.PROTECT, related_name="tasks")
+    manager = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="created_tasks",
+        limit_choices_to={"role": User.Role.MANAGER},
+    )
+    employee = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="assigned_tasks",
+        limit_choices_to={"role": User.Role.EMPLOYEE},
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.TODO)
+    due_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
