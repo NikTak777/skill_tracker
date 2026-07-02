@@ -1,8 +1,16 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import UserReadSerializer, UserWriteSerializer
+from .models import Task, User
+from .serializers import (
+    TaskCreateSerializer,
+    TaskReadSerializer,
+    TaskUpdateSerializer,
+    UserReadSerializer,
+    UserWriteSerializer,
+)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -24,3 +32,33 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserReadSerializer(request.user).data)
+
+class TaskViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == User.Role.MANAGER:
+            return Task.objects.filter(manager=user).select_related(
+                "skill", "manager", "employee"
+            )
+        return Task.objects.filter(employee=user).select_related(
+            "skill", "manager", "employee"
+        )
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return TaskCreateSerializer
+        if self.action in ("update", "partial_update"):
+            return TaskUpdateSerializer
+        return TaskReadSerializer
+
+    def perform_create(self, serializer):
+        if self.request.user.role != User.Role.MANAGER:
+            raise PermissionDenied("Создавать задачи может только руководитель.")
+        serializer.save()
+        
+    def perform_destroy(self, instance):
+        if self.request.user.role != User.Role.MANAGER:
+            raise PermissionDenied("Удалять задачи может только руководитель.")
+        instance.delete()
