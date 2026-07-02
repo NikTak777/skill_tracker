@@ -58,15 +58,17 @@ class TaskReadSerializer(serializers.ModelSerializer):
 
 
 class TaskCreateSerializer(serializers.ModelSerializer):
-  # manager подставится из request.user во view
     class Meta:
         model = Task
         fields = ["title", "description", "skill", "employee", "due_date"]
 
+    def validate_employee(self, employee):
+        if employee.role != User.Role.EMPLOYEE:
+            raise serializers.ValidationError("Назначить задачу можно только сотруднику.")
+        return employee
+        
     def create(self, validated_data):
-        request = self.context.get("request")
-        if request is None or not request.user.is_authenticated:
-            raise serializers.ValidationError("Требуется авторизованный пользователь.")
+        request = self.context["request"]
         validated_data["manager"] = request.user
         return super().create(validated_data)
 
