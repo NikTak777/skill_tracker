@@ -2,11 +2,12 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .views import MeView, RegisterView, TaskViewSet, ProgressViewSet
+from .views import MeView, RegisterView, TaskViewSet, ProgressViewSet, CommentViewSet
 
 router = DefaultRouter()
 router.register("tasks", TaskViewSet, basename="task")
 router.register("progress", ProgressViewSet, basename="progress")
+router.register("comments", CommentViewSet, basename="comment")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
