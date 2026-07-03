@@ -43,3 +43,8 @@ class ProgressCreateSchema(BaseModel):
     task: int = Field(gt=0)
     percent: int = Field(ge=0, le=100)
     note: str = ""
+
+
+class CommentCreateSchema(BaseModel):
+    task: int = Field(gt=0)
+    text: str = Field(min_length=1)
