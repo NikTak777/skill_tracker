@@ -1,9 +1,9 @@
 from rest_framework import generics, permissions, status, viewsets
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Task, User
+from .permissions import IsManager, IsTaskManager, IsTaskParticipant
 from .pydantic_schemas import (
     TaskCreateSchema,
     TaskUpdateSchema,
@@ -47,6 +47,15 @@ class MeView(APIView):
 class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        if self.action == "create":
+            return [permissions.IsAuthenticated(), IsManager()]
+        if self.action == "destroy":
+            return [permissions.IsAuthenticated(), IsManager(), IsTaskManager()]
+        if self.action in ("update", "partial_update", "retrieve"):
+            return [permissions.IsAuthenticated(), IsTaskParticipant()]
+        return [permissions.IsAuthenticated()]
+
     def get_queryset(self):
         user = self.request.user
         if user.role == User.Role.MANAGER:
@@ -81,13 +90,3 @@ class TaskViewSet(viewsets.ModelViewSet):
         if error_response:
             return error_response
         return super().partial_update(request, *args, **kwargs)
-
-    def perform_create(self, serializer):
-        if self.request.user.role != User.Role.MANAGER:
-            raise PermissionDenied("Создавать задачи может только руководитель.")
-        serializer.save()
-
-    def perform_destroy(self, instance):
-        if self.request.user.role != User.Role.MANAGER:
-            raise PermissionDenied("Удалять задачи может только руководитель.")
-        instance.delete()
