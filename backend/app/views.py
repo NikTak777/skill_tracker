@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 
-from .models import Task, User, Progress
+from .models import Task, User, Progress, Comment
 from .permissions import IsManager, IsTaskManager, IsTaskParticipant, IsEmployee
 from .pydantic_schemas import (
     TaskCreateSchema,
@@ -11,6 +11,7 @@ from .pydantic_schemas import (
     UserRegisterSchema,
     validate_request,
     ProgressCreateSchema,
+    CommentCreateSchema,
 )
 from .serializers import (
     TaskCreateSerializer,
@@ -20,6 +21,8 @@ from .serializers import (
     UserWriteSerializer,
     ProgressCreateSerializer,
     ProgressReadSerializer,
+    CommentCreateSerializer,
+    CommentReadSerializer,
 )
 
 
@@ -144,6 +147,55 @@ class ProgressViewSet(
         headers = self.get_success_headers(serializer.data)
         return Response(
             ProgressReadSerializer(serializer.instance).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+
+
+class CommentViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == User.Role.MANAGER:
+            qs = Comment.objects.filter(task__manager=user)
+        else:
+            qs = Comment.objects.filter(task__employee=user)
+
+        qs = qs.select_related("task", "author")
+
+        task_id = self.request.query_params.get("task")
+        if task_id is not None:
+            qs = qs.filter(task_id=task_id)
+        return qs
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return CommentCreateSerializer
+        return CommentReadSerializer
+
+    def create(self, request, *args, **kwargs):
+        error_response = validate_request(CommentCreateSchema, request.data)
+        if error_response:
+            return error_response
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task = serializer.validated_data["task"]
+        user = request.user
+        if task.manager != user and task.employee != user:
+            raise PermissionDenied("Комментарий можно оставить только к доступной задаче.")
+
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            CommentReadSerializer(serializer.instance).data,
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
