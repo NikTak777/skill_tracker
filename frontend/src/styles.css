@@ -212,6 +212,14 @@ h1 {
   width: 100%;
 }
 
+.form-message {
+  border: 1px solid #111;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  padding: 12px;
+}
+
 .manager-form {
   align-self: start;
   display: grid;
