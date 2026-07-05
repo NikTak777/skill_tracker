@@ -36,6 +36,24 @@ const tasks = [
   },
 ];
 
+const employees = [
+  {
+    id: 1,
+    name: "Анна Петрова",
+    role: "Frontend trainee",
+  },
+  {
+    id: 2,
+    name: "Иван Соколов",
+    role: "DevOps trainee",
+  },
+  {
+    id: 3,
+    name: "Мария Иванова",
+    role: "Backend trainee",
+  },
+];
+
 
 function ShowcasePage() {
   const averageProgress = Math.round(
@@ -69,6 +87,110 @@ function ShowcasePage() {
       </section>
 
       <TaskGrid tasks={tasks} />
+    </>
+  );
+}
+
+
+function ManagerPage() {
+  const teamProgress = Math.round(
+    tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
+  );
+  const tasksInProgress = tasks.filter((task) => task.status === "В работе").length;
+
+  return (
+    <>
+      <section className="hero manager-hero">
+        <p className="label">Кабинет руководителя</p>
+        <h1>Команда и задачи развития</h1>
+        <p>
+          Страница помогает руководителю видеть прогресс сотрудников, назначенные задачи и
+          прототип формы для постановки новой задачи.
+        </p>
+      </section>
+
+      <section className="summary" aria-label="Сводка руководителя">
+        <article>
+          <span>Сотрудников</span>
+          <strong>{employees.length}</strong>
+        </article>
+        <article>
+          <span>Средний прогресс</span>
+          <strong>{teamProgress}%</strong>
+        </article>
+        <article>
+          <span>В работе</span>
+          <strong>{tasksInProgress}</strong>
+        </article>
+      </section>
+
+      <section className="manager-layout">
+        <form className="manager-form">
+          <p className="label">Новая задача</p>
+          <h2>Поставить задачу</h2>
+          <label>
+            Название
+            <input type="text" placeholder="Например, изучить React Router" />
+          </label>
+          <label>
+            Сотрудник
+            <select defaultValue="Анна Петрова">
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.name}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Навык
+            <input type="text" placeholder="Frontend, Backend, DevOps" />
+          </label>
+          <label>
+            Описание
+            <textarea placeholder="Что нужно сделать и какой результат ожидается" />
+          </label>
+          <button type="button">Создать задачу</button>
+        </form>
+
+        <section className="manager-board" aria-label="Сотрудники и задачи">
+          <div className="section-heading">
+            <p className="label">Команда</p>
+            <h2>Прогресс сотрудников</h2>
+          </div>
+          <div className="employee-list">
+            {employees.map((employee) => {
+              const employeeTasks = tasks.filter((task) => task.owner === employee.name);
+              const progress = employeeTasks.length === 0
+                ? 0
+                : Math.round(
+                    employeeTasks.reduce((sum, task) => sum + task.progress, 0) / employeeTasks.length,
+                  );
+
+              return (
+                <article className="employee-row" key={employee.id}>
+                  <div>
+                    <h3>{employee.name}</h3>
+                    <p>{employee.role}</p>
+                  </div>
+                  <div className="employee-row__stats">
+                    <span>{employeeTasks.length} задач</span>
+                    <span>{progress}%</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </section>
+
+      <section className="manager-tasks">
+        <div className="section-heading">
+          <p className="label">Контроль</p>
+          <h2>Все задачи команды</h2>
+        </div>
+        <TaskGrid tasks={tasks} />
+      </section>
     </>
   );
 }
@@ -176,9 +298,18 @@ export default function App() {
         >
           Сотрудник
         </button>
+        <button
+          className={activePage === "manager" ? "active" : ""}
+          type="button"
+          onClick={() => setActivePage("manager")}
+        >
+          Руководитель
+        </button>
       </nav>
 
-      {activePage === "showcase" ? <ShowcasePage /> : <EmployeeTasksPage />}
+      {activePage === "showcase" && <ShowcasePage />}
+      {activePage === "employee" && <EmployeeTasksPage />}
+      {activePage === "manager" && <ManagerPage />}
     </main>
   );
 }

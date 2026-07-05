@@ -3,7 +3,7 @@ name: skilltracker
 services:
 
   db:
-    image: postgres:15
+    image: postgres:16
     restart: always
     environment:
       POSTGRES_DB: skill_tracker
