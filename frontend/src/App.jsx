@@ -92,6 +92,83 @@ function ShowcasePage() {
 }
 
 
+function AuthPage() {
+  const [mode, setMode] = useState("login");
+  const isLogin = mode === "login";
+
+  return (
+    <section className="auth-layout">
+      <div className="hero auth-hero">
+        <p className="label">Доступ</p>
+        <h1>{isLogin ? "Вход в SkillTracker" : "Регистрация пользователя"}</h1>
+        <p>
+          Статический прототип формы. Сейчас поля не отправляются на сервер и нужны только для
+          демонстрации будущего сценария авторизации.
+        </p>
+      </div>
+
+      <form className="auth-form">
+        <div className="auth-switcher" aria-label="Выбор формы">
+          <button
+            className={isLogin ? "active" : ""}
+            type="button"
+            onClick={() => setMode("login")}
+          >
+            Вход
+          </button>
+          <button
+            className={!isLogin ? "active" : ""}
+            type="button"
+            onClick={() => setMode("register")}
+          >
+            Регистрация
+          </button>
+        </div>
+
+        <p className="label">{isLogin ? "Уже есть аккаунт" : "Новый аккаунт"}</p>
+        <h2>{isLogin ? "Введите данные" : "Заполните профиль"}</h2>
+
+        {!isLogin && (
+          <label>
+            Имя
+            <input type="text" placeholder="Анна Петрова" />
+          </label>
+        )}
+
+        <label>
+          Email
+          <input type="email" placeholder="employee@example.com" />
+        </label>
+
+        {!isLogin && (
+          <label>
+            Роль
+            <select defaultValue="employee">
+              <option value="employee">Сотрудник</option>
+              <option value="manager">Руководитель</option>
+            </select>
+          </label>
+        )}
+
+        <label>
+          Пароль
+          <input type="password" placeholder="Введите пароль" />
+        </label>
+
+        {!isLogin && (
+          <label>
+            Повтор пароля
+            <input type="password" placeholder="Повторите пароль" />
+          </label>
+        )}
+
+        <button type="button">{isLogin ? "Войти" : "Создать аккаунт"}</button>
+      </form>
+    </section>
+  );
+}
+
+
 function ManagerPage() {
   const teamProgress = Math.round(
     tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
@@ -292,6 +369,13 @@ export default function App() {
           Витрина
         </button>
         <button
+          className={activePage === "auth" ? "active" : ""}
+          type="button"
+          onClick={() => setActivePage("auth")}
+        >
+          Вход
+        </button>
+        <button
           className={activePage === "employee" ? "active" : ""}
           type="button"
           onClick={() => setActivePage("employee")}
@@ -308,6 +392,7 @@ export default function App() {
       </nav>
 
       {activePage === "showcase" && <ShowcasePage />}
+      {activePage === "auth" && <AuthPage />}
       {activePage === "employee" && <EmployeeTasksPage />}
       {activePage === "manager" && <ManagerPage />}
     </main>
