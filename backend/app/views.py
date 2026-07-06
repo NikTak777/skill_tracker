@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 
-from .models import Task, User, Progress, Comment
+from .models import Task, User, Progress, Comment, Skill
 from .permissions import IsManager, IsTaskManager, IsTaskParticipant, IsEmployee
 from .pydantic_schemas import (
     TaskCreateSchema,
@@ -23,6 +23,7 @@ from .serializers import (
     ProgressReadSerializer,
     CommentCreateSerializer,
     CommentReadSerializer,
+    SkillSerializer,
 )
 
 
@@ -199,3 +200,13 @@ class CommentViewSet(
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
+
+
+class SkillViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Skill.objects.all().order_by("name")
+    serializer_class = SkillSerializer
+    permission_classes = [permissions.IsAuthenticated]
