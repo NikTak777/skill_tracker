@@ -1,14 +1,17 @@
-from rest_framework import generics, permissions, status, viewsets
+from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 
-from .models import Task, User
-from .permissions import IsManager, IsTaskManager, IsTaskParticipant
+from .models import Task, User, Progress, Comment, Skill
+from .permissions import IsManager, IsTaskManager, IsTaskParticipant, IsEmployee
 from .pydantic_schemas import (
     TaskCreateSchema,
     TaskUpdateSchema,
     UserRegisterSchema,
     validate_request,
+    ProgressCreateSchema,
+    CommentCreateSchema,
 )
 from .serializers import (
     TaskCreateSerializer,
@@ -16,6 +19,11 @@ from .serializers import (
     TaskUpdateSerializer,
     UserReadSerializer,
     UserWriteSerializer,
+    ProgressCreateSerializer,
+    ProgressReadSerializer,
+    CommentCreateSerializer,
+    CommentReadSerializer,
+    SkillSerializer,
 )
 
 
@@ -90,3 +98,115 @@ class TaskViewSet(viewsets.ModelViewSet):
         if error_response:
             return error_response
         return super().partial_update(request, *args, **kwargs)
+
+
+class ProgressViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [permissions.IsAuthenticated(), IsEmployee()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == User.Role.MANAGER:
+            qs = Progress.objects.filter(task__manager=user)
+        else:
+            qs = Progress.objects.filter(employee=user)
+
+        qs = qs.select_related("task", "employee")
+
+        task_id = self.request.query_params.get("task")
+        if task_id is not None:
+            qs = qs.filter(task_id=task_id)
+        return qs
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ProgressCreateSerializer
+        return ProgressReadSerializer
+
+    def create(self, request, *args, **kwargs):
+        error_response = validate_request(ProgressCreateSchema, request.data)
+        if error_response:
+            return error_response
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task = serializer.validated_data["task"]
+        if task.employee != request.user:
+            raise PermissionDenied("Прогресс можно добавить только к своей задаче.")
+
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            ProgressReadSerializer(serializer.instance).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+
+
+class CommentViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == User.Role.MANAGER:
+            qs = Comment.objects.filter(task__manager=user)
+        else:
+            qs = Comment.objects.filter(task__employee=user)
+
+        qs = qs.select_related("task", "author")
+
+        task_id = self.request.query_params.get("task")
+        if task_id is not None:
+            qs = qs.filter(task_id=task_id)
+        return qs
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return CommentCreateSerializer
+        return CommentReadSerializer
+
+    def create(self, request, *args, **kwargs):
+        error_response = validate_request(CommentCreateSchema, request.data)
+        if error_response:
+            return error_response
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        task = serializer.validated_data["task"]
+        user = request.user
+        if task.manager != user and task.employee != user:
+            raise PermissionDenied("Комментарий можно оставить только к доступной задаче.")
+
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            CommentReadSerializer(serializer.instance).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+
+
+class SkillViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Skill.objects.all().order_by("name")
+    serializer_class = SkillSerializer
+    permission_classes = [permissions.IsAuthenticated]
