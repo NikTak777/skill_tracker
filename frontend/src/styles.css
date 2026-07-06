@@ -20,9 +20,17 @@ body {
 }
 
 .top-nav {
+  align-items: center;
   display: flex;
   gap: 12px;
+  justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .top-nav button {
@@ -38,6 +46,46 @@ body {
 .top-nav button.active {
   background: #111;
   color: #fff;
+}
+
+.session-badge {
+  align-items: center;
+  border: 1px solid #111;
+  display: flex;
+  gap: 12px;
+  min-width: 180px;
+  padding: 10px 12px;
+}
+
+.session-badge.active {
+  background: #111;
+  color: #fff;
+}
+
+.session-icon {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  height: 28px;
+  place-items: center;
+  width: 28px;
+}
+
+.session-badge strong,
+.session-badge span {
+  display: block;
+}
+
+.session-badge strong {
+  font-size: 13px;
+}
+
+.session-badge div > span {
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .hero {
@@ -188,6 +236,11 @@ h1 {
   padding: 12px 18px;
 }
 
+.auth-form button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .auth-switcher button.active,
 .auth-form > button {
   background: #111;
@@ -210,6 +263,18 @@ h1 {
   font-weight: 400;
   padding: 12px;
   width: 100%;
+}
+
+.form-message {
+  border: 1px solid #111;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  padding: 12px;
+}
+
+.form-message--error {
+  border-style: dashed;
 }
 
 .manager-form {
@@ -357,6 +422,11 @@ h1 {
 }
 
 @media (max-width: 900px) {
+  .top-nav {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .summary,
   .task-grid,
   .auth-layout,
