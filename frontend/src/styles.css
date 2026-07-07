@@ -82,18 +82,6 @@ body {
   color: #fff;
 }
 
-.session-icon {
-  align-items: center;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  display: grid;
-  font-size: 13px;
-  font-weight: 700;
-  height: 28px;
-  place-items: center;
-  width: 28px;
-}
-
 .session-badge strong,
 .session-badge span {
   display: block;

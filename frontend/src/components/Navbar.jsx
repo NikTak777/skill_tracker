@@ -43,9 +43,6 @@ export default function Navbar({ activePath, onNavigate, session, onLogout }) {
       </div>
 
       <div className={`session-badge ${session.isAuthenticated ? "active" : ""}`}>
-        <span className="session-icon" aria-hidden="true">
-          {session.isAuthenticated ? "✓" : "?"}
-        </span>
         <div>
           <strong>{session.isAuthenticated ? session.username || "В системе" : "Не в системе"}</strong>
           <span>{session.isAuthenticated ? ROLE_LABELS[session.role] || session.role : "Гость"}</span>
