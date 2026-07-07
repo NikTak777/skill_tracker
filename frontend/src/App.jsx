@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { getAccessToken, getMe, getTasks, login, register } from "./api.js";
 import Navbar from "./components/Navbar.jsx";
@@ -57,7 +58,11 @@ const employees = [
   },
 ];
 
-function DashboardPage() {
+function normalizeRole(role) {
+  return String(role || "").toLowerCase();
+}
+
+function DashboardPage({ onNavigate, session }) {
   const [dashboardTasks, setDashboardTasks] = useState(tasks);
   const [loadStatus, setLoadStatus] = useState("loading");
 
@@ -116,14 +121,36 @@ function DashboardPage() {
         </article>
       </section>
 
+      <section className="role-panel">
+        <div>
+          <p className="label">Главная после входа</p>
+          <h2>
+            {session.role === "manager"
+              ? "Панель руководителя"
+              : "Панель сотрудника"}
+          </h2>
+          <p>
+            {session.role === "manager"
+              ? "Вы можете перейти к управлению задачами команды."
+              : "Вы можете перейти к списку своих задач развития."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate(session.role === "manager" ? "/manager" : "/employee")}
+        >
+          {session.role === "manager" ? "Открыть панель управления" : "Открыть мои задачи"}
+        </button>
+      </section>
+
       <TaskGrid tasks={dashboardTasks} />
     </>
   );
 }
 
 
-function AuthPage({ onAuthSuccess }) {
-  const [mode, setMode] = useState("login");
+function AuthPage({ initialMode = "login", onAuthSuccess }) {
+  const [mode, setMode] = useState(initialMode);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -134,6 +161,10 @@ function AuthPage({ onAuthSuccess }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isLogin = mode === "login";
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   function updateField(event) {
     const { name, value } = event.target;
@@ -207,10 +238,22 @@ function AuthPage({ onAuthSuccess }) {
         password: formData.password,
         role: formData.role,
       });
+      await login({
+        username: formData.username,
+        password: formData.password,
+      });
+
+      let profile = user;
+      try {
+        profile = await getMe();
+      } catch {
+        // Если /auth/me/ временно недоступен, используем ответ регистрации.
+      }
+
       setStatusMessage("Регистрация выполнена. Переходим на Dashboard.");
       onAuthSuccess({
-        role: user.role || formData.role,
-        username: user.username || formData.username,
+        role: profile.role || formData.role,
+        username: profile.username || formData.username,
       });
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -481,14 +524,70 @@ function TaskGrid({ tasks: taskList }) {
   );
 }
 
+function PrivateRoute({ authChecked, children, session }) {
+  if (!authChecked) {
+    return <p className="empty-state">Проверяем авторизацию...</p>;
+  }
+
+  if (!session.isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
 
 export default function App() {
-  const [activePage, setActivePage] = useState("showcase");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [authChecked, setAuthChecked] = useState(false);
   const [session, setSession] = useState(() => ({
     isAuthenticated: Boolean(getAccessToken()),
     role: localStorage.getItem("skilltracker_user_role") || "",
     username: localStorage.getItem("skilltracker_username") || "",
   }));
+
+  useEffect(() => {
+    async function loadCurrentUser() {
+      const token = getAccessToken();
+
+      if (!token) {
+        setSession({
+          isAuthenticated: false,
+          role: "",
+          username: "",
+        });
+        setAuthChecked(true);
+        return;
+      }
+
+      try {
+        const profile = await getMe();
+        const role = normalizeRole(profile.role);
+        const username = profile.username || "";
+
+        localStorage.setItem("skilltracker_user_role", role);
+        localStorage.setItem("skilltracker_username", username);
+        setSession({
+          isAuthenticated: true,
+          role,
+          username,
+        });
+      } catch {
+        localStorage.removeItem("skilltracker_user_role");
+        localStorage.removeItem("skilltracker_username");
+        setSession({
+          isAuthenticated: false,
+          role: "",
+          username: "",
+        });
+      } finally {
+        setAuthChecked(true);
+      }
+    }
+
+    loadCurrentUser();
+  }, []);
 
   useEffect(() => {
     function handleUnauthorized() {
@@ -499,22 +598,25 @@ export default function App() {
       });
       localStorage.removeItem("skilltracker_user_role");
       localStorage.removeItem("skilltracker_username");
-      setActivePage("auth");
+      navigate("/login", { replace: true });
     }
 
     window.addEventListener("auth:unauthorized", handleUnauthorized);
     return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
-  }, []);
+  }, [navigate]);
 
   function handleAuthSuccess({ role, username }) {
-    localStorage.setItem("skilltracker_user_role", role);
+    const normalizedRole = normalizeRole(role);
+
+    localStorage.setItem("skilltracker_user_role", normalizedRole);
     localStorage.setItem("skilltracker_username", username);
     setSession({
       isAuthenticated: true,
-      role,
+      role: normalizedRole,
       username,
     });
-    setActivePage("showcase");
+    setAuthChecked(true);
+    navigate("/dashboard", { replace: true });
   }
 
   function handleLogout() {
@@ -523,21 +625,48 @@ export default function App() {
       role: "",
       username: "",
     });
+    navigate("/login", { replace: true });
   }
 
   return (
     <main className="page">
       <Navbar
-        activePage={activePage}
+        activePath={location.pathname}
         onLogout={handleLogout}
-        onNavigate={setActivePage}
+        onNavigate={navigate}
         session={session}
       />
 
-      {activePage === "showcase" && <DashboardPage />}
-      {activePage === "auth" && <AuthPage onAuthSuccess={handleAuthSuccess} />}
-      {activePage === "employee" && <EmployeeTasksPage />}
-      {activePage === "manager" && <ManagerPage />}
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<AuthPage initialMode="login" onAuthSuccess={handleAuthSuccess} />} />
+        <Route path="/register" element={<AuthPage initialMode="register" onAuthSuccess={handleAuthSuccess} />} />
+        <Route
+          path="/dashboard"
+          element={(
+            <PrivateRoute authChecked={authChecked} session={session}>
+              <DashboardPage onNavigate={navigate} session={session} />
+            </PrivateRoute>
+          )}
+        />
+        <Route
+          path="/employee"
+          element={(
+            <PrivateRoute authChecked={authChecked} session={session}>
+              <EmployeeTasksPage />
+            </PrivateRoute>
+          )}
+        />
+        <Route
+          path="/manager"
+          element={(
+            <PrivateRoute authChecked={authChecked} session={session}>
+              <ManagerPage />
+            </PrivateRoute>
+          )}
+        />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </main>
   );
 }

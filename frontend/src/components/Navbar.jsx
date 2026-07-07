@@ -7,19 +7,19 @@ const ROLE_LABELS = {
 };
 
 const navItems = [
-  { id: "showcase", label: "Dashboard" },
-  { id: "auth", label: "Вход" },
-  { id: "employee", label: "Сотрудник" },
-  { id: "manager", label: "Руководитель" },
+  { path: "/dashboard", label: "Dashboard" },
+  { path: "/login", label: "Вход" },
+  { path: "/employee", label: "Сотрудник" },
+  { path: "/manager", label: "Руководитель" },
 ];
 
-export default function Navbar({ activePage, onNavigate, session, onLogout }) {
+export default function Navbar({ activePath, onNavigate, session, onLogout }) {
   function handleLogout() {
     clearTokens();
     localStorage.removeItem("skilltracker_user_role");
     localStorage.removeItem("skilltracker_username");
     onLogout();
-    onNavigate("auth");
+    onNavigate("/login");
   }
 
   return (
@@ -32,10 +32,10 @@ export default function Navbar({ activePage, onNavigate, session, onLogout }) {
       <div className="nav-actions">
         {navItems.map((item) => (
           <button
-            className={activePage === item.id ? "active" : ""}
-            key={item.id}
+            className={activePath === item.path ? "active" : ""}
+            key={item.path}
             type="button"
-            onClick={() => onNavigate(item.id)}
+            onClick={() => onNavigate(item.path)}
           >
             {item.label}
           </button>
