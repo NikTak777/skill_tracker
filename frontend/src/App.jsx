@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { getAccessToken, getMe, login, register } from "./api.js";
+import { getAccessToken, getMe, getTasks, login, register } from "./api.js";
+import Navbar from "./components/Navbar.jsx";
+import TaskCard from "./components/TaskCard.jsx";
 import "./styles.css";
 
 
@@ -55,17 +57,34 @@ const employees = [
   },
 ];
 
-const ROLE_LABELS = {
-  manager: "Руководитель",
-  employee: "Сотрудник",
-};
-
-
 function DashboardPage() {
-  const averageProgress = Math.round(
-    tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
-  );
-  const skillsCount = new Set(tasks.map((task) => task.skill)).size;
+  const [dashboardTasks, setDashboardTasks] = useState(tasks);
+  const [loadStatus, setLoadStatus] = useState("loading");
+
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const data = await getTasks();
+        const taskList = Array.isArray(data) ? data : data.results || data.tasks || [];
+        setDashboardTasks(taskList);
+        setLoadStatus("success");
+      } catch {
+        setDashboardTasks(tasks);
+        setLoadStatus("fallback");
+      }
+    }
+
+    loadTasks();
+  }, []);
+
+  const averageProgress = dashboardTasks.length === 0
+    ? 0
+    : Math.round(
+        dashboardTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / dashboardTasks.length,
+      );
+  const skillsCount = new Set(
+    dashboardTasks.map((task) => (typeof task.skill === "string" ? task.skill : task.skill?.name)).filter(Boolean),
+  ).size;
 
   return (
     <>
@@ -73,14 +92,19 @@ function DashboardPage() {
         <p className="label">SkillTracker</p>
         <h1>Витрина задач развития</h1>
         <p>
-          Одна frontend-страница для демонстрации задач сотрудников. Данные пока статические
+          Dashboard загружает задачи из backend API. Если API недоступно, показываются демо-данные.
+        </p>
+        <p className="form-message">
+          {loadStatus === "loading" && "Загружаем задачи..."}
+          {loadStatus === "success" && "Задачи загружены из /api/tasks/."}
+          {loadStatus === "fallback" && "Backend недоступен или нет доступа, показаны демо-данные."}
         </p>
       </section>
 
       <section className="summary" aria-label="Сводка задач">
         <article>
           <span>Всего задач</span>
-          <strong>{tasks.length}</strong>
+          <strong>{dashboardTasks.length}</strong>
         </article>
         <article>
           <span>Средний прогресс</span>
@@ -92,7 +116,7 @@ function DashboardPage() {
         </article>
       </section>
 
-      <TaskGrid tasks={tasks} />
+      <TaskGrid tasks={dashboardTasks} />
     </>
   );
 }
@@ -162,16 +186,18 @@ function AuthPage({ onAuthSuccess }) {
           password: formData.password,
         });
         let role = "employee";
+        let username = formData.username;
 
         try {
           const profile = await getMe();
           role = profile.role || role;
+          username = profile.username || username;
         } catch {
           // Если /auth/me/ еще не готов, оставляем базовую роль для статуса.
         }
 
         setStatusMessage("Вход выполнен. Переходим на Dashboard.");
-        onAuthSuccess(role);
+        onAuthSuccess({ role, username });
         return;
       }
 
@@ -182,7 +208,10 @@ function AuthPage({ onAuthSuccess }) {
         role: formData.role,
       });
       setStatusMessage("Регистрация выполнена. Переходим на Dashboard.");
-      onAuthSuccess(user.role || formData.role);
+      onAuthSuccess({
+        role: user.role || formData.role,
+        username: user.username || formData.username,
+      });
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
@@ -438,29 +467,15 @@ function EmployeeTasksPage() {
 }
 
 
-function TaskGrid({ tasks }) {
-  if (tasks.length === 0) {
+function TaskGrid({ tasks: taskList }) {
+  if (taskList.length === 0) {
     return <p className="empty-state">Задач пока нет.</p>;
   }
 
   return (
     <section className="task-grid" aria-label="Список задач">
-      {tasks.map((task) => (
-        <article className="task-card" key={task.id}>
-          <div className="task-card__top">
-            <span>{task.skill}</span>
-            <span>{task.status}</span>
-          </div>
-          <h2>{task.title}</h2>
-          <p>{task.description}</p>
-          <div className="progress" aria-label={`Прогресс ${task.progress}%`}>
-            <span style={{ width: `${task.progress}%` }} />
-          </div>
-          <div className="task-card__meta">
-            <span>Ответственный: {task.owner}</span>
-            <span>Срок: {task.deadline}</span>
-          </div>
-        </article>
+      {taskList.map((task) => (
+        <TaskCard key={task.id} task={task} />
       ))}
     </section>
   );
@@ -472,6 +487,7 @@ export default function App() {
   const [session, setSession] = useState(() => ({
     isAuthenticated: Boolean(getAccessToken()),
     role: localStorage.getItem("skilltracker_user_role") || "",
+    username: localStorage.getItem("skilltracker_username") || "",
   }));
 
   useEffect(() => {
@@ -479,8 +495,10 @@ export default function App() {
       setSession({
         isAuthenticated: false,
         role: "",
+        username: "",
       });
       localStorage.removeItem("skilltracker_user_role");
+      localStorage.removeItem("skilltracker_username");
       setActivePage("auth");
     }
 
@@ -488,59 +506,33 @@ export default function App() {
     return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
   }, []);
 
-  function handleAuthSuccess(role) {
+  function handleAuthSuccess({ role, username }) {
     localStorage.setItem("skilltracker_user_role", role);
+    localStorage.setItem("skilltracker_username", username);
     setSession({
       isAuthenticated: true,
       role,
+      username,
     });
     setActivePage("showcase");
   }
 
+  function handleLogout() {
+    setSession({
+      isAuthenticated: false,
+      role: "",
+      username: "",
+    });
+  }
+
   return (
     <main className="page">
-      <nav className="top-nav" aria-label="Разделы приложения">
-        <div className="nav-actions">
-          <button
-            className={activePage === "showcase" ? "active" : ""}
-            type="button"
-            onClick={() => setActivePage("showcase")}
-          >
-            Dashboard
-          </button>
-          <button
-            className={activePage === "auth" ? "active" : ""}
-            type="button"
-            onClick={() => setActivePage("auth")}
-          >
-            Вход
-          </button>
-          <button
-            className={activePage === "employee" ? "active" : ""}
-            type="button"
-            onClick={() => setActivePage("employee")}
-          >
-            Сотрудник
-          </button>
-          <button
-            className={activePage === "manager" ? "active" : ""}
-            type="button"
-            onClick={() => setActivePage("manager")}
-          >
-            Руководитель
-          </button>
-        </div>
-
-        <div className={`session-badge ${session.isAuthenticated ? "active" : ""}`}>
-          <span className="session-icon" aria-hidden="true">
-            {session.isAuthenticated ? "✓" : "?"}
-          </span>
-          <div>
-            <strong>{session.isAuthenticated ? "В системе" : "Не в системе"}</strong>
-            <span>{session.isAuthenticated ? ROLE_LABELS[session.role] || session.role : "Гость"}</span>
-          </div>
-        </div>
-      </nav>
+      <Navbar
+        activePage={activePage}
+        onLogout={handleLogout}
+        onNavigate={setActivePage}
+        session={session}
+      />
 
       {activePage === "showcase" && <DashboardPage />}
       {activePage === "auth" && <AuthPage onAuthSuccess={handleAuthSuccess} />}

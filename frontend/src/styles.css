@@ -33,6 +33,26 @@ body {
   gap: 12px;
 }
 
+.brand {
+  border: 1px solid #111;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+}
+
+.brand strong,
+.brand span {
+  display: block;
+}
+
+.brand strong {
+  font-size: 15px;
+}
+
+.brand span {
+  font-size: 12px;
+}
+
 .top-nav button {
   background: #fff;
   border: 1px solid #111;
@@ -53,7 +73,7 @@ body {
   border: 1px solid #111;
   display: flex;
   gap: 12px;
-  min-width: 180px;
+  min-width: 240px;
   padding: 10px 12px;
 }
 
@@ -86,6 +106,16 @@ body {
 .session-badge div > span {
   font-size: 12px;
   margin-top: 2px;
+}
+
+.logout-button {
+  margin-left: auto;
+  padding: 8px 10px;
+}
+
+.session-badge.active .logout-button {
+  background: #fff;
+  color: #111;
 }
 
 .hero {
