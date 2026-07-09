@@ -73,6 +73,11 @@ export async function getTasks() {
   return response.data;
 }
 
+export async function getSkills() {
+  const response = await api.get("/skills/");
+  return response.data;
+}
+
 export async function createTask(taskData) {
   const response = await api.post("/tasks/", taskData);
   return response.data;

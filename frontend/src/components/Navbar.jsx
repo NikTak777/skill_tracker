@@ -10,10 +10,18 @@ const navItems = [
   { path: "/dashboard", label: "Dashboard" },
   { path: "/login", label: "Вход" },
   { path: "/employee", label: "Сотрудник" },
-  { path: "/manager", label: "Руководитель" },
+  { path: "/manager", label: "Руководитель", roles: ["manager"] },
 ];
 
 export default function Navbar({ activePath, onNavigate, session, onLogout }) {
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.roles) {
+      return true;
+    }
+
+    return session.isAuthenticated && item.roles.includes(session.role);
+  });
+
   function handleLogout() {
     clearTokens();
     localStorage.removeItem("skilltracker_user_role");
@@ -30,7 +38,7 @@ export default function Navbar({ activePath, onNavigate, session, onLogout }) {
       </div>
 
       <div className="nav-actions">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <button
             className={activePath === item.path ? "active" : ""}
             key={item.path}

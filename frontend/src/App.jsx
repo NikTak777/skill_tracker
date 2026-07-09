@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { getAccessToken, getMe, getTasks, login, register } from "./api.js";
 import Navbar from "./components/Navbar.jsx";
 import TaskCard from "./components/TaskCard.jsx";
+import ManagerPanel from "./pages/ManagerPanel.jsx";
 import "./styles.css";
 
 const ROLE_LABELS = {
@@ -718,7 +719,7 @@ export default function App() {
           path="/manager"
           element={(
             <PrivateRoute authChecked={authChecked} session={session}>
-              <ManagerPage session={session} />
+              <ManagerPanel session={session} />
             </PrivateRoute>
           )}
         />
