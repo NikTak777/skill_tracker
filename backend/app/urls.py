@@ -23,4 +23,5 @@ urlpatterns = [
     path("auth/me/", MeView.as_view(), name="me"),
     path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("employees/", EmployeeListView.as_view(), name="employees"),
 ] + router.urls
