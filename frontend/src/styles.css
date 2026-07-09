@@ -105,14 +105,33 @@ h1 {
   margin-top: 24px;
 }
 
+.auth-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 420px;
+}
+
+.manager-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 360px 1fr;
+  margin-top: 24px;
+}
+
 .employee-panel,
 .employee-content,
+.auth-form,
+.manager-form,
+.manager-board,
+.manager-tasks,
 .empty-state {
   border: 1px solid #111;
   padding: 24px;
 }
 
 .employee-panel h2,
+.auth-form h2,
+.manager-form h2,
 .section-heading h2 {
   font-size: 28px;
   line-height: 1.1;
@@ -143,6 +162,137 @@ h1 {
 
 .employee-content .task-grid {
   grid-template-columns: 1fr;
+  margin-top: 24px;
+}
+
+.auth-form {
+  align-self: start;
+  display: grid;
+  gap: 18px;
+}
+
+.auth-switcher {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.auth-switcher button,
+.auth-form button {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 18px;
+}
+
+.auth-switcher button.active,
+.auth-form > button {
+  background: #111;
+  color: #fff;
+}
+
+.auth-form label {
+  display: grid;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.auth-form input,
+.auth-form select {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  font: inherit;
+  font-weight: 400;
+  padding: 12px;
+  width: 100%;
+}
+
+.manager-form {
+  align-self: start;
+  display: grid;
+  gap: 18px;
+}
+
+.manager-form label {
+  display: grid;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.manager-form input,
+.manager-form select,
+.manager-form textarea {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  font: inherit;
+  font-weight: 400;
+  padding: 12px;
+  width: 100%;
+}
+
+.manager-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.manager-form button {
+  background: #111;
+  border: 1px solid #111;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 14px 18px;
+}
+
+.employee-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.employee-row {
+  align-items: center;
+  border: 1px solid #111;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.employee-row h3 {
+  font-size: 20px;
+  margin: 0 0 6px;
+}
+
+.employee-row p {
+  margin: 0;
+}
+
+.employee-row__stats {
+  display: flex;
+  gap: 8px;
+}
+
+.employee-row__stats span {
+  border: 1px solid #111;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.manager-tasks {
+  margin-top: 16px;
+}
+
+.manager-tasks .task-grid {
   margin-top: 24px;
 }
 
@@ -209,8 +359,16 @@ h1 {
 @media (max-width: 900px) {
   .summary,
   .task-grid,
-  .employee-layout {
+  .auth-layout,
+  .employee-layout,
+  .manager-layout {
     grid-template-columns: 1fr;
+  }
+
+  .employee-row,
+  .employee-row__stats {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .task-card {

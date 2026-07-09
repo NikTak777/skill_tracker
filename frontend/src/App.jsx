@@ -36,6 +36,24 @@ const tasks = [
   },
 ];
 
+const employees = [
+  {
+    id: 1,
+    name: "Анна Петрова",
+    role: "Frontend trainee",
+  },
+  {
+    id: 2,
+    name: "Иван Соколов",
+    role: "DevOps trainee",
+  },
+  {
+    id: 3,
+    name: "Мария Иванова",
+    role: "Backend trainee",
+  },
+];
+
 
 function ShowcasePage() {
   const averageProgress = Math.round(
@@ -69,6 +87,187 @@ function ShowcasePage() {
       </section>
 
       <TaskGrid tasks={tasks} />
+    </>
+  );
+}
+
+
+function AuthPage() {
+  const [mode, setMode] = useState("login");
+  const isLogin = mode === "login";
+
+  return (
+    <section className="auth-layout">
+      <div className="hero auth-hero">
+        <p className="label">Доступ</p>
+        <h1>{isLogin ? "Вход в SkillTracker" : "Регистрация пользователя"}</h1>
+        <p>
+          Статический прототип формы. Сейчас поля не отправляются на сервер и нужны только для
+          демонстрации будущего сценария авторизации.
+        </p>
+      </div>
+
+      <form className="auth-form">
+        <div className="auth-switcher" aria-label="Выбор формы">
+          <button
+            className={isLogin ? "active" : ""}
+            type="button"
+            onClick={() => setMode("login")}
+          >
+            Вход
+          </button>
+          <button
+            className={!isLogin ? "active" : ""}
+            type="button"
+            onClick={() => setMode("register")}
+          >
+            Регистрация
+          </button>
+        </div>
+
+        <p className="label">{isLogin ? "Уже есть аккаунт" : "Новый аккаунт"}</p>
+        <h2>{isLogin ? "Введите данные" : "Заполните профиль"}</h2>
+
+        {!isLogin && (
+          <label>
+            Имя
+            <input type="text" placeholder="Анна Петрова" />
+          </label>
+        )}
+
+        <label>
+          Email
+          <input type="email" placeholder="employee@example.com" />
+        </label>
+
+        {!isLogin && (
+          <label>
+            Роль
+            <select defaultValue="employee">
+              <option value="employee">Сотрудник</option>
+              <option value="manager">Руководитель</option>
+            </select>
+          </label>
+        )}
+
+        <label>
+          Пароль
+          <input type="password" placeholder="Введите пароль" />
+        </label>
+
+        {!isLogin && (
+          <label>
+            Повтор пароля
+            <input type="password" placeholder="Повторите пароль" />
+          </label>
+        )}
+
+        <button type="button">{isLogin ? "Войти" : "Создать аккаунт"}</button>
+      </form>
+    </section>
+  );
+}
+
+
+function ManagerPage() {
+  const teamProgress = Math.round(
+    tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
+  );
+  const tasksInProgress = tasks.filter((task) => task.status === "В работе").length;
+
+  return (
+    <>
+      <section className="hero manager-hero">
+        <p className="label">Кабинет руководителя</p>
+        <h1>Команда и задачи развития</h1>
+        <p>
+          Страница помогает руководителю видеть прогресс сотрудников, назначенные задачи и
+          прототип формы для постановки новой задачи.
+        </p>
+      </section>
+
+      <section className="summary" aria-label="Сводка руководителя">
+        <article>
+          <span>Сотрудников</span>
+          <strong>{employees.length}</strong>
+        </article>
+        <article>
+          <span>Средний прогресс</span>
+          <strong>{teamProgress}%</strong>
+        </article>
+        <article>
+          <span>В работе</span>
+          <strong>{tasksInProgress}</strong>
+        </article>
+      </section>
+
+      <section className="manager-layout">
+        <form className="manager-form">
+          <p className="label">Новая задача</p>
+          <h2>Поставить задачу</h2>
+          <label>
+            Название
+            <input type="text" placeholder="" />
+          </label>
+          <label>
+            Сотрудник
+            <select defaultValue="Анна Петрова">
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.name}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Навык
+            <input type="text" placeholder="" />
+          </label>
+          <label>
+            Описание
+            <textarea placeholder="" />
+          </label>
+          <button type="button">Создать задачу</button>
+        </form>
+
+        <section className="manager-board" aria-label="Сотрудники и задачи">
+          <div className="section-heading">
+            <p className="label">Команда</p>
+            <h2>Прогресс сотрудников</h2>
+          </div>
+          <div className="employee-list">
+            {employees.map((employee) => {
+              const employeeTasks = tasks.filter((task) => task.owner === employee.name);
+              const progress = employeeTasks.length === 0
+                ? 0
+                : Math.round(
+                    employeeTasks.reduce((sum, task) => sum + task.progress, 0) / employeeTasks.length,
+                  );
+
+              return (
+                <article className="employee-row" key={employee.id}>
+                  <div>
+                    <h3>{employee.name}</h3>
+                    <p>{employee.role}</p>
+                  </div>
+                  <div className="employee-row__stats">
+                    <span>{employeeTasks.length} задач</span>
+                    <span>{progress}%</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </section>
+
+      <section className="manager-tasks">
+        <div className="section-heading">
+          <p className="label">Контроль</p>
+          <h2>Все задачи команды</h2>
+        </div>
+        <TaskGrid tasks={tasks} />
+      </section>
     </>
   );
 }
@@ -170,15 +369,32 @@ export default function App() {
           Витрина
         </button>
         <button
+          className={activePage === "auth" ? "active" : ""}
+          type="button"
+          onClick={() => setActivePage("auth")}
+        >
+          Вход
+        </button>
+        <button
           className={activePage === "employee" ? "active" : ""}
           type="button"
           onClick={() => setActivePage("employee")}
         >
           Сотрудник
         </button>
+        <button
+          className={activePage === "manager" ? "active" : ""}
+          type="button"
+          onClick={() => setActivePage("manager")}
+        >
+          Руководитель
+        </button>
       </nav>
 
-      {activePage === "showcase" ? <ShowcasePage /> : <EmployeeTasksPage />}
+      {activePage === "showcase" && <ShowcasePage />}
+      {activePage === "auth" && <AuthPage />}
+      {activePage === "employee" && <EmployeeTasksPage />}
+      {activePage === "manager" && <ManagerPage />}
     </main>
   );
 }
