@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 
-import { login as loginRequest, register as registerRequest } from "./api.js";
 import "./styles.css";
 
 
@@ -93,56 +92,9 @@ function ShowcasePage() {
 }
 
 
-function AuthPage({ onAuthSuccess }) {
+function AuthPage() {
   const [mode, setMode] = useState("login");
-  const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    email: "",
-    role: "employee",
-    password: "",
-    passwordConfirm: "",
-  });
-  const [message, setMessage] = useState("");
   const isLogin = mode === "login";
-
-  function updateField(event) {
-    const { name, value } = event.target;
-    setFormData((currentData) => ({
-      ...currentData,
-      [name]: value,
-    }));
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setMessage("Отправляем данные...");
-
-    try {
-      if (isLogin) {
-        await loginRequest({
-          username: formData.username,
-          password: formData.password,
-        });
-        setMessage("Вход выполнен. Токен сохранен в localStorage.");
-        onAuthSuccess();
-        return;
-      }
-
-      await registerRequest({
-        name: formData.name,
-        username: formData.username,
-        email: formData.email,
-        role: formData.role,
-        password: formData.password,
-        password_confirm: formData.passwordConfirm,
-      });
-      setMessage("Регистрация отправлена. Теперь можно войти.");
-      setMode("login");
-    } catch {
-      setMessage("Запрос не выполнен. Возможно, backend endpoint пока не готов.");
-    }
-  }
 
   return (
     <section className="auth-layout">
@@ -155,7 +107,7 @@ function AuthPage({ onAuthSuccess }) {
         </p>
       </div>
 
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="auth-form">
         <div className="auth-switcher" aria-label="Выбор формы">
           <button
             className={isLogin ? "active" : ""}
@@ -179,57 +131,19 @@ function AuthPage({ onAuthSuccess }) {
         {!isLogin && (
           <label>
             Имя
-            <input
-              name="name"
-              type="text"
-              placeholder="Анна Петрова"
-              value={formData.name}
-              onChange={updateField}
-            />
+            <input type="text" placeholder="Анна Петрова" />
           </label>
         )}
 
         <label>
-          Логин
-          <input
-            name="username"
-            type="text"
-            placeholder="employee"
-            value={formData.username}
-            onChange={updateField}
-          />
+          Email
+          <input type="email" placeholder="employee@example.com" />
         </label>
 
         {!isLogin && (
           <label>
-            Email
-            <input
-              name="email"
-              type="email"
-              placeholder="employee@example.com"
-              value={formData.email}
-              onChange={updateField}
-            />
-          </label>
-        )}
-
-        {isLogin && (
-          <label>
-            Email
-            <input
-              name="email"
-              type="email"
-              placeholder="employee@example.com"
-              value={formData.email}
-              onChange={updateField}
-            />
-          </label>
-        )}
-
-        {!isLogin && (
-          <label>
             Роль
-            <select name="role" value={formData.role} onChange={updateField}>
+            <select defaultValue="employee">
               <option value="employee">Сотрудник</option>
               <option value="manager">Руководитель</option>
             </select>
@@ -238,31 +152,17 @@ function AuthPage({ onAuthSuccess }) {
 
         <label>
           Пароль
-          <input
-            name="password"
-            type="password"
-            placeholder="Введите пароль"
-            value={formData.password}
-            onChange={updateField}
-          />
+          <input type="password" placeholder="Введите пароль" />
         </label>
 
         {!isLogin && (
           <label>
             Повтор пароля
-            <input
-              name="passwordConfirm"
-              type="password"
-              placeholder="Повторите пароль"
-              value={formData.passwordConfirm}
-              onChange={updateField}
-            />
+            <input type="password" placeholder="Повторите пароль" />
           </label>
         )}
 
-        {message && <p className="form-message">{message}</p>}
-
-        <button type="submit">{isLogin ? "Войти" : "Создать аккаунт"}</button>
+        <button type="button">{isLogin ? "Войти" : "Создать аккаунт"}</button>
       </form>
     </section>
   );
@@ -458,15 +358,6 @@ function TaskGrid({ tasks }) {
 export default function App() {
   const [activePage, setActivePage] = useState("showcase");
 
-  useEffect(() => {
-    function handleUnauthorized() {
-      setActivePage("auth");
-    }
-
-    window.addEventListener("auth:unauthorized", handleUnauthorized);
-    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
-  }, []);
-
   return (
     <main className="page">
       <nav className="top-nav" aria-label="Разделы приложения">
@@ -501,7 +392,7 @@ export default function App() {
       </nav>
 
       {activePage === "showcase" && <ShowcasePage />}
-      {activePage === "auth" && <AuthPage onAuthSuccess={() => setActivePage("showcase")} />}
+      {activePage === "auth" && <AuthPage />}
       {activePage === "employee" && <EmployeeTasksPage />}
       {activePage === "manager" && <ManagerPage />}
     </main>
