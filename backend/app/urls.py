@@ -9,6 +9,7 @@ from .views import (
     ProgressViewSet,
     CommentViewSet,
     SkillViewSet,
+    EmployeeListView,
 )
 
 router = DefaultRouter()
