@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, ValidationError
 from rest_framework import status
@@ -43,3 +43,8 @@ class ProgressCreateSchema(BaseModel):
     task: int = Field(gt=0)
     percent: int = Field(ge=0, le=100)
     note: str = ""
+
+
+class CommentCreateSchema(BaseModel):
+    task: int = Field(gt=0)
+    text: str = Field(min_length=1)

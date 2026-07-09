@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color: #111;
   background: #fff;
   font-family:
@@ -20,9 +20,37 @@ body {
 }
 
 .top-nav {
+  align-items: center;
   display: flex;
   gap: 12px;
+  justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.brand {
+  border: 1px solid #111;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+}
+
+.brand strong,
+.brand span {
+  display: block;
+}
+
+.brand strong {
+  font-size: 15px;
+}
+
+.brand span {
+  font-size: 12px;
 }
 
 .top-nav button {
@@ -38,6 +66,56 @@ body {
 .top-nav button.active {
   background: #111;
   color: #fff;
+}
+
+.session-badge {
+  align-items: center;
+  border: 1px solid #111;
+  display: flex;
+  gap: 12px;
+  min-width: 240px;
+  padding: 10px 12px;
+}
+
+.session-badge.active {
+  background: #111;
+  color: #fff;
+}
+
+.session-icon {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  height: 28px;
+  place-items: center;
+  width: 28px;
+}
+
+.session-badge strong,
+.session-badge span {
+  display: block;
+}
+
+.session-badge strong {
+  font-size: 13px;
+}
+
+.session-badge div > span {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.logout-button {
+  margin-left: auto;
+  padding: 8px 10px;
+}
+
+.session-badge.active .logout-button {
+  background: #fff;
+  color: #111;
 }
 
 .hero {
@@ -105,6 +183,12 @@ h1 {
   margin-top: 24px;
 }
 
+.auth-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 420px;
+}
+
 .manager-layout {
   display: grid;
   gap: 16px;
@@ -114,6 +198,7 @@ h1 {
 
 .employee-panel,
 .employee-content,
+.auth-form,
 .manager-form,
 .manager-board,
 .manager-tasks,
@@ -123,6 +208,7 @@ h1 {
 }
 
 .employee-panel h2,
+.auth-form h2,
 .manager-form h2,
 .section-heading h2 {
   font-size: 28px;
@@ -155,6 +241,70 @@ h1 {
 .employee-content .task-grid {
   grid-template-columns: 1fr;
   margin-top: 24px;
+}
+
+.auth-form {
+  align-self: start;
+  display: grid;
+  gap: 18px;
+}
+
+.auth-switcher {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.auth-switcher button,
+.auth-form button {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 18px;
+}
+
+.auth-form button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.auth-switcher button.active,
+.auth-form > button {
+  background: #111;
+  color: #fff;
+}
+
+.auth-form label {
+  display: grid;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.auth-form input,
+.auth-form select {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  font: inherit;
+  font-weight: 400;
+  padding: 12px;
+  width: 100%;
+}
+
+.form-message {
+  border: 1px solid #111;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  padding: 12px;
+}
+
+.form-message--error {
+  border-style: dashed;
 }
 
 .manager-form {
@@ -302,8 +452,14 @@ h1 {
 }
 
 @media (max-width: 900px) {
+  .top-nav {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .summary,
   .task-grid,
+  .auth-layout,
   .employee-layout,
   .manager-layout {
     grid-template-columns: 1fr;

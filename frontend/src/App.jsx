@@ -1,5 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
+import { getAccessToken, getMe, getTasks, login, register } from "./api.js";
+import Navbar from "./components/Navbar.jsx";
+import TaskCard from "./components/TaskCard.jsx";
 import "./styles.css";
 
 
@@ -54,12 +57,34 @@ const employees = [
   },
 ];
 
+function DashboardPage() {
+  const [dashboardTasks, setDashboardTasks] = useState(tasks);
+  const [loadStatus, setLoadStatus] = useState("loading");
 
-function ShowcasePage() {
-  const averageProgress = Math.round(
-    tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
-  );
-  const skillsCount = new Set(tasks.map((task) => task.skill)).size;
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const data = await getTasks();
+        const taskList = Array.isArray(data) ? data : data.results || data.tasks || [];
+        setDashboardTasks(taskList);
+        setLoadStatus("success");
+      } catch {
+        setDashboardTasks(tasks);
+        setLoadStatus("fallback");
+      }
+    }
+
+    loadTasks();
+  }, []);
+
+  const averageProgress = dashboardTasks.length === 0
+    ? 0
+    : Math.round(
+        dashboardTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / dashboardTasks.length,
+      );
+  const skillsCount = new Set(
+    dashboardTasks.map((task) => (typeof task.skill === "string" ? task.skill : task.skill?.name)).filter(Boolean),
+  ).size;
 
   return (
     <>
@@ -67,14 +92,19 @@ function ShowcasePage() {
         <p className="label">SkillTracker</p>
         <h1>Витрина задач развития</h1>
         <p>
-          Одна frontend-страница для демонстрации задач сотрудников. Данные пока статические
+          Dashboard загружает задачи из backend API. Если API недоступно, показываются демо-данные.
+        </p>
+        <p className="form-message">
+          {loadStatus === "loading" && "Загружаем задачи..."}
+          {loadStatus === "success" && "Задачи загружены из /api/tasks/."}
+          {loadStatus === "fallback" && "Backend недоступен или нет доступа, показаны демо-данные."}
         </p>
       </section>
 
       <section className="summary" aria-label="Сводка задач">
         <article>
           <span>Всего задач</span>
-          <strong>{tasks.length}</strong>
+          <strong>{dashboardTasks.length}</strong>
         </article>
         <article>
           <span>Средний прогресс</span>
@@ -86,7 +116,299 @@ function ShowcasePage() {
         </article>
       </section>
 
-      <TaskGrid tasks={tasks} />
+      <TaskGrid tasks={dashboardTasks} />
+    </>
+  );
+}
+
+
+function AuthPage({ onAuthSuccess }) {
+  const [mode, setMode] = useState("login");
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    role: "employee",
+  });
+  const [statusMessage, setStatusMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isLogin = mode === "login";
+
+  function updateField(event) {
+    const { name, value } = event.target;
+    setFormData((currentData) => ({
+      ...currentData,
+      [name]: value,
+    }));
+  }
+
+  function getErrorMessage(error) {
+    const responseData = error.response?.data;
+
+    if (!responseData) {
+      return "Backend недоступен. Проверьте, что сервер запущен.";
+    }
+
+    if (typeof responseData === "string") {
+      return responseData;
+    }
+
+    if (responseData.detail) {
+      return responseData.detail;
+    }
+
+    if (responseData.username) {
+      return `Username: ${Array.isArray(responseData.username) ? responseData.username.join(" ") : responseData.username}`;
+    }
+
+    if (responseData.password) {
+      return `Password: ${Array.isArray(responseData.password) ? responseData.password.join(" ") : responseData.password}`;
+    }
+
+    if (responseData.email) {
+      return `Email: ${Array.isArray(responseData.email) ? responseData.email.join(" ") : responseData.email}`;
+    }
+
+    return "Запрос завершился ошибкой. Проверьте введенные данные.";
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setErrorMessage("");
+    setStatusMessage("");
+    setIsSubmitting(true);
+
+    try {
+      if (isLogin) {
+        await login({
+          username: formData.username,
+          password: formData.password,
+        });
+        let role = "employee";
+        let username = formData.username;
+
+        try {
+          const profile = await getMe();
+          role = profile.role || role;
+          username = profile.username || username;
+        } catch {
+          // Если /auth/me/ еще не готов, оставляем базовую роль для статуса.
+        }
+
+        setStatusMessage("Вход выполнен. Переходим на Dashboard.");
+        onAuthSuccess({ role, username });
+        return;
+      }
+
+      const user = await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      });
+      setStatusMessage("Регистрация выполнена. Переходим на Dashboard.");
+      onAuthSuccess({
+        role: user.role || formData.role,
+        username: user.username || formData.username,
+      });
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="auth-layout">
+      <div className="hero auth-hero">
+        <p className="label">Доступ</p>
+        <h1>{isLogin ? "Вход в SkillTracker" : "Регистрация пользователя"}</h1>
+        <p>
+          Форма отправляет данные в backend API и показывает ошибки авторизации или регистрации.
+        </p>
+      </div>
+
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <div className="auth-switcher" aria-label="Выбор формы">
+          <button
+            className={isLogin ? "active" : ""}
+            type="button"
+            onClick={() => setMode("login")}
+          >
+            Вход
+          </button>
+          <button
+            className={!isLogin ? "active" : ""}
+            type="button"
+            onClick={() => setMode("register")}
+          >
+            Регистрация
+          </button>
+        </div>
+
+        <p className="label">{isLogin ? "Уже есть аккаунт" : "Новый аккаунт"}</p>
+        <h2>{isLogin ? "Введите данные" : "Заполните профиль"}</h2>
+
+        <label>
+          Username
+          <input
+            name="username"
+            type="text"
+            placeholder="employee"
+            value={formData.username}
+            onChange={updateField}
+            required
+          />
+        </label>
+
+        {!isLogin && (
+          <label>
+            Email
+            <input
+              name="email"
+              type="email"
+              placeholder="employee@example.com"
+              value={formData.email}
+              onChange={updateField}
+              required
+            />
+          </label>
+        )}
+
+        {!isLogin && (
+          <label>
+            Роль
+            <select name="role" value={formData.role} onChange={updateField}>
+              <option value="employee">Сотрудник</option>
+              <option value="manager">Руководитель</option>
+            </select>
+          </label>
+        )}
+
+        <label>
+          Пароль
+          <input
+            name="password"
+            type="password"
+            placeholder="Введите пароль"
+            value={formData.password}
+            onChange={updateField}
+            required
+          />
+        </label>
+
+        {errorMessage && <p className="form-message form-message--error">{errorMessage}</p>}
+        {statusMessage && <p className="form-message">{statusMessage}</p>}
+
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Отправка..." : isLogin ? "Войти" : "Создать аккаунт"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+
+function ManagerPage() {
+  const teamProgress = Math.round(
+    tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
+  );
+  const tasksInProgress = tasks.filter((task) => task.status === "В работе").length;
+
+  return (
+    <>
+      <section className="hero manager-hero">
+        <p className="label">Кабинет руководителя</p>
+        <h1>Команда и задачи развития</h1>
+        <p>
+          Страница помогает руководителю видеть прогресс сотрудников, назначенные задачи и
+          прототип формы для постановки новой задачи.
+        </p>
+      </section>
+
+      <section className="summary" aria-label="Сводка руководителя">
+        <article>
+          <span>Сотрудников</span>
+          <strong>{employees.length}</strong>
+        </article>
+        <article>
+          <span>Средний прогресс</span>
+          <strong>{teamProgress}%</strong>
+        </article>
+        <article>
+          <span>В работе</span>
+          <strong>{tasksInProgress}</strong>
+        </article>
+      </section>
+
+      <section className="manager-layout">
+        <form className="manager-form">
+          <p className="label">Новая задача</p>
+          <h2>Поставить задачу</h2>
+          <label>
+            Название
+            <input type="text" placeholder="" />
+          </label>
+          <label>
+            Сотрудник
+            <select defaultValue="Анна Петрова">
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.name}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Навык
+            <input type="text" placeholder="" />
+          </label>
+          <label>
+            Описание
+            <textarea placeholder="" />
+          </label>
+          <button type="button">Создать задачу</button>
+        </form>
+
+        <section className="manager-board" aria-label="Сотрудники и задачи">
+          <div className="section-heading">
+            <p className="label">Команда</p>
+            <h2>Прогресс сотрудников</h2>
+          </div>
+          <div className="employee-list">
+            {employees.map((employee) => {
+              const employeeTasks = tasks.filter((task) => task.owner === employee.name);
+              const progress = employeeTasks.length === 0
+                ? 0
+                : Math.round(
+                    employeeTasks.reduce((sum, task) => sum + task.progress, 0) / employeeTasks.length,
+                  );
+
+              return (
+                <article className="employee-row" key={employee.id}>
+                  <div>
+                    <h3>{employee.name}</h3>
+                    <p>{employee.role}</p>
+                  </div>
+                  <div className="employee-row__stats">
+                    <span>{employeeTasks.length} задач</span>
+                    <span>{progress}%</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </section>
+
+      <section className="manager-tasks">
+        <div className="section-heading">
+          <p className="label">Контроль</p>
+          <h2>Все задачи команды</h2>
+        </div>
+        <TaskGrid tasks={tasks} />
+      </section>
     </>
   );
 }
@@ -249,29 +571,15 @@ function EmployeeTasksPage() {
 }
 
 
-function TaskGrid({ tasks }) {
-  if (tasks.length === 0) {
+function TaskGrid({ tasks: taskList }) {
+  if (taskList.length === 0) {
     return <p className="empty-state">Задач пока нет.</p>;
   }
 
   return (
     <section className="task-grid" aria-label="Список задач">
-      {tasks.map((task) => (
-        <article className="task-card" key={task.id}>
-          <div className="task-card__top">
-            <span>{task.skill}</span>
-            <span>{task.status}</span>
-          </div>
-          <h2>{task.title}</h2>
-          <p>{task.description}</p>
-          <div className="progress" aria-label={`Прогресс ${task.progress}%`}>
-            <span style={{ width: `${task.progress}%` }} />
-          </div>
-          <div className="task-card__meta">
-            <span>Ответственный: {task.owner}</span>
-            <span>Срок: {task.deadline}</span>
-          </div>
-        </article>
+      {taskList.map((task) => (
+        <TaskCard key={task.id} task={task} />
       ))}
     </section>
   );
@@ -280,34 +588,58 @@ function TaskGrid({ tasks }) {
 
 export default function App() {
   const [activePage, setActivePage] = useState("showcase");
+  const [session, setSession] = useState(() => ({
+    isAuthenticated: Boolean(getAccessToken()),
+    role: localStorage.getItem("skilltracker_user_role") || "",
+    username: localStorage.getItem("skilltracker_username") || "",
+  }));
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      setSession({
+        isAuthenticated: false,
+        role: "",
+        username: "",
+      });
+      localStorage.removeItem("skilltracker_user_role");
+      localStorage.removeItem("skilltracker_username");
+      setActivePage("auth");
+    }
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
+  }, []);
+
+  function handleAuthSuccess({ role, username }) {
+    localStorage.setItem("skilltracker_user_role", role);
+    localStorage.setItem("skilltracker_username", username);
+    setSession({
+      isAuthenticated: true,
+      role,
+      username,
+    });
+    setActivePage("showcase");
+  }
+
+  function handleLogout() {
+    setSession({
+      isAuthenticated: false,
+      role: "",
+      username: "",
+    });
+  }
 
   return (
     <main className="page">
-      <nav className="top-nav" aria-label="Разделы приложения">
-        <button
-          className={activePage === "showcase" ? "active" : ""}
-          type="button"
-          onClick={() => setActivePage("showcase")}
-        >
-          Витрина
-        </button>
-        <button
-          className={activePage === "employee" ? "active" : ""}
-          type="button"
-          onClick={() => setActivePage("employee")}
-        >
-          Сотрудник
-        </button>
-        <button
-          className={activePage === "manager" ? "active" : ""}
-          type="button"
-          onClick={() => setActivePage("manager")}
-        >
-          Руководитель
-        </button>
-      </nav>
+      <Navbar
+        activePage={activePage}
+        onLogout={handleLogout}
+        onNavigate={setActivePage}
+        session={session}
+      />
 
-      {activePage === "showcase" && <ShowcasePage />}
+      {activePage === "showcase" && <DashboardPage />}
+      {activePage === "auth" && <AuthPage onAuthSuccess={handleAuthSuccess} />}
       {activePage === "employee" && <EmployeeTasksPage />}
       {activePage === "manager" && <ManagerPage />}
     </main>
