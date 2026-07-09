@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
+import { getAccessToken, getMe, login, register } from "./api.js";
 import "./styles.css";
 
 
@@ -54,8 +55,13 @@ const employees = [
   },
 ];
 
+const ROLE_LABELS = {
+  manager: "Руководитель",
+  employee: "Сотрудник",
+};
 
-function ShowcasePage() {
+
+function DashboardPage() {
   const averageProgress = Math.round(
     tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
   );
@@ -92,9 +98,97 @@ function ShowcasePage() {
 }
 
 
-function AuthPage() {
+function AuthPage({ onAuthSuccess }) {
   const [mode, setMode] = useState("login");
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    role: "employee",
+  });
+  const [statusMessage, setStatusMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isLogin = mode === "login";
+
+  function updateField(event) {
+    const { name, value } = event.target;
+    setFormData((currentData) => ({
+      ...currentData,
+      [name]: value,
+    }));
+  }
+
+  function getErrorMessage(error) {
+    const responseData = error.response?.data;
+
+    if (!responseData) {
+      return "Backend недоступен. Проверьте, что сервер запущен.";
+    }
+
+    if (typeof responseData === "string") {
+      return responseData;
+    }
+
+    if (responseData.detail) {
+      return responseData.detail;
+    }
+
+    if (responseData.username) {
+      return `Username: ${Array.isArray(responseData.username) ? responseData.username.join(" ") : responseData.username}`;
+    }
+
+    if (responseData.password) {
+      return `Password: ${Array.isArray(responseData.password) ? responseData.password.join(" ") : responseData.password}`;
+    }
+
+    if (responseData.email) {
+      return `Email: ${Array.isArray(responseData.email) ? responseData.email.join(" ") : responseData.email}`;
+    }
+
+    return "Запрос завершился ошибкой. Проверьте введенные данные.";
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setErrorMessage("");
+    setStatusMessage("");
+    setIsSubmitting(true);
+
+    try {
+      if (isLogin) {
+        await login({
+          username: formData.username,
+          password: formData.password,
+        });
+        let role = "employee";
+
+        try {
+          const profile = await getMe();
+          role = profile.role || role;
+        } catch {
+          // Если /auth/me/ еще не готов, оставляем базовую роль для статуса.
+        }
+
+        setStatusMessage("Вход выполнен. Переходим на Dashboard.");
+        onAuthSuccess(role);
+        return;
+      }
+
+      const user = await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      });
+      setStatusMessage("Регистрация выполнена. Переходим на Dashboard.");
+      onAuthSuccess(user.role || formData.role);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <section className="auth-layout">
@@ -102,12 +196,11 @@ function AuthPage() {
         <p className="label">Доступ</p>
         <h1>{isLogin ? "Вход в SkillTracker" : "Регистрация пользователя"}</h1>
         <p>
-          Статический прототип формы. Сейчас поля не отправляются на сервер и нужны только для
-          демонстрации будущего сценария авторизации.
+          Форма отправляет данные в backend API и показывает ошибки авторизации или регистрации.
         </p>
       </div>
 
-      <form className="auth-form">
+      <form className="auth-form" onSubmit={handleSubmit}>
         <div className="auth-switcher" aria-label="Выбор формы">
           <button
             className={isLogin ? "active" : ""}
@@ -128,22 +221,36 @@ function AuthPage() {
         <p className="label">{isLogin ? "Уже есть аккаунт" : "Новый аккаунт"}</p>
         <h2>{isLogin ? "Введите данные" : "Заполните профиль"}</h2>
 
-        {!isLogin && (
-          <label>
-            Имя
-            <input type="text" placeholder="Анна Петрова" />
-          </label>
-        )}
-
         <label>
-          Email
-          <input type="email" placeholder="employee@example.com" />
+          Username
+          <input
+            name="username"
+            type="text"
+            placeholder="employee"
+            value={formData.username}
+            onChange={updateField}
+            required
+          />
         </label>
 
         {!isLogin && (
           <label>
+            Email
+            <input
+              name="email"
+              type="email"
+              placeholder="employee@example.com"
+              value={formData.email}
+              onChange={updateField}
+              required
+            />
+          </label>
+        )}
+
+        {!isLogin && (
+          <label>
             Роль
-            <select defaultValue="employee">
+            <select name="role" value={formData.role} onChange={updateField}>
               <option value="employee">Сотрудник</option>
               <option value="manager">Руководитель</option>
             </select>
@@ -152,17 +259,22 @@ function AuthPage() {
 
         <label>
           Пароль
-          <input type="password" placeholder="Введите пароль" />
+          <input
+            name="password"
+            type="password"
+            placeholder="Введите пароль"
+            value={formData.password}
+            onChange={updateField}
+            required
+          />
         </label>
 
-        {!isLogin && (
-          <label>
-            Повтор пароля
-            <input type="password" placeholder="Повторите пароль" />
-          </label>
-        )}
+        {errorMessage && <p className="form-message form-message--error">{errorMessage}</p>}
+        {statusMessage && <p className="form-message">{statusMessage}</p>}
 
-        <button type="button">{isLogin ? "Войти" : "Создать аккаунт"}</button>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Отправка..." : isLogin ? "Войти" : "Создать аккаунт"}
+        </button>
       </form>
     </section>
   );
@@ -357,42 +469,81 @@ function TaskGrid({ tasks }) {
 
 export default function App() {
   const [activePage, setActivePage] = useState("showcase");
+  const [session, setSession] = useState(() => ({
+    isAuthenticated: Boolean(getAccessToken()),
+    role: localStorage.getItem("skilltracker_user_role") || "",
+  }));
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      setSession({
+        isAuthenticated: false,
+        role: "",
+      });
+      localStorage.removeItem("skilltracker_user_role");
+      setActivePage("auth");
+    }
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
+  }, []);
+
+  function handleAuthSuccess(role) {
+    localStorage.setItem("skilltracker_user_role", role);
+    setSession({
+      isAuthenticated: true,
+      role,
+    });
+    setActivePage("showcase");
+  }
 
   return (
     <main className="page">
       <nav className="top-nav" aria-label="Разделы приложения">
-        <button
-          className={activePage === "showcase" ? "active" : ""}
-          type="button"
-          onClick={() => setActivePage("showcase")}
-        >
-          Витрина
-        </button>
-        <button
-          className={activePage === "auth" ? "active" : ""}
-          type="button"
-          onClick={() => setActivePage("auth")}
-        >
-          Вход
-        </button>
-        <button
-          className={activePage === "employee" ? "active" : ""}
-          type="button"
-          onClick={() => setActivePage("employee")}
-        >
-          Сотрудник
-        </button>
-        <button
-          className={activePage === "manager" ? "active" : ""}
-          type="button"
-          onClick={() => setActivePage("manager")}
-        >
-          Руководитель
-        </button>
+        <div className="nav-actions">
+          <button
+            className={activePage === "showcase" ? "active" : ""}
+            type="button"
+            onClick={() => setActivePage("showcase")}
+          >
+            Dashboard
+          </button>
+          <button
+            className={activePage === "auth" ? "active" : ""}
+            type="button"
+            onClick={() => setActivePage("auth")}
+          >
+            Вход
+          </button>
+          <button
+            className={activePage === "employee" ? "active" : ""}
+            type="button"
+            onClick={() => setActivePage("employee")}
+          >
+            Сотрудник
+          </button>
+          <button
+            className={activePage === "manager" ? "active" : ""}
+            type="button"
+            onClick={() => setActivePage("manager")}
+          >
+            Руководитель
+          </button>
+        </div>
+
+        <div className={`session-badge ${session.isAuthenticated ? "active" : ""}`}>
+          <span className="session-icon" aria-hidden="true">
+            {session.isAuthenticated ? "✓" : "?"}
+          </span>
+          <div>
+            <strong>{session.isAuthenticated ? "В системе" : "Не в системе"}</strong>
+            <span>{session.isAuthenticated ? ROLE_LABELS[session.role] || session.role : "Гость"}</span>
+          </div>
+        </div>
       </nav>
 
-      {activePage === "showcase" && <ShowcasePage />}
-      {activePage === "auth" && <AuthPage />}
+      {activePage === "showcase" && <DashboardPage />}
+      {activePage === "auth" && <AuthPage onAuthSuccess={handleAuthSuccess} />}
       {activePage === "employee" && <EmployeeTasksPage />}
       {activePage === "manager" && <ManagerPage />}
     </main>

@@ -5,7 +5,7 @@ const ACCESS_TOKEN_KEY = "skilltracker_access_token";
 const REFRESH_TOKEN_KEY = "skilltracker_refresh_token";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -15,7 +15,7 @@ export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
-export function saveAuthTokens(tokens) {
+export function saveTokens(tokens) {
   if (tokens.access) {
     localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access);
   }
@@ -25,7 +25,7 @@ export function saveAuthTokens(tokens) {
   }
 }
 
-export function clearAuthTokens() {
+export function clearTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
@@ -44,7 +44,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      clearAuthTokens();
+      clearTokens();
       window.dispatchEvent(new CustomEvent("auth:unauthorized"));
     }
 
@@ -54,17 +54,17 @@ api.interceptors.response.use(
 
 export async function login(credentials) {
   const response = await api.post("/auth/token/", credentials);
-  saveAuthTokens(response.data);
+  saveTokens(response.data);
   return response.data;
 }
 
 export async function register(userData) {
-  const response = await api.post("/register/", userData);
+  const response = await api.post("/auth/register/", userData);
   return response.data;
 }
 
 export async function getMe() {
-  const response = await api.get("/me/");
+  const response = await api.get("/auth/me/");
   return response.data;
 }
 
