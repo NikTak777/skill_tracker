@@ -82,3 +82,13 @@ export async function createTask(taskData) {
   const response = await api.post("/tasks/", taskData);
   return response.data;
 }
+
+export async function updateTask(taskId, taskData) {
+  const response = await api.patch(`/tasks/${taskId}/`, taskData);
+  return response.data;
+}
+
+export async function getProgress(taskId) {
+  const response = await api.get("/progress/", { params: { task: taskId } });
+  return response.data;
+}

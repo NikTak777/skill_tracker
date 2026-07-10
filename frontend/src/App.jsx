@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { getAccessToken, getMe, getTasks, login, register } from "./api.js";
 import Navbar from "./components/Navbar.jsx";
 import TaskCard from "./components/TaskCard.jsx";
+import EmployeeTasks from "./pages/EmployeeTasks.jsx";
 import ManagerPanel from "./pages/ManagerPanel.jsx";
 import "./styles.css";
 
@@ -34,19 +35,6 @@ function getTaskProgress(task) {
   }
 
   return 0;
-}
-
-function getPersonName(person) {
-  if (!person) {
-    return "";
-  }
-
-  if (typeof person === "string") {
-    return person;
-  }
-
-  const fullName = [person.first_name, person.last_name].filter(Boolean).join(" ");
-  return fullName || person.username || "";
 }
 
 function DashboardPage({ onNavigate, session }) {
@@ -340,234 +328,6 @@ function AuthPage({ initialMode = "login", onAuthSuccess }) {
 }
 
 
-function ManagerPage({ session }) {
-  const [managerProfile, setManagerProfile] = useState({
-    username: session.username,
-    email: "",
-    role: session.role,
-  });
-  const [managerTasks, setManagerTasks] = useState([]);
-  const [loadStatus, setLoadStatus] = useState("loading");
-
-  useEffect(() => {
-    async function loadManagerData() {
-      setLoadStatus("loading");
-
-      try {
-        const [profile, taskData] = await Promise.all([getMe(), getTasks()]);
-        setManagerProfile({
-          username: profile.username || session.username,
-          email: profile.email || "",
-          role: normalizeRole(profile.role || session.role),
-        });
-        setManagerTasks(getTaskList(taskData));
-        setLoadStatus("success");
-      } catch {
-        setManagerTasks([]);
-        setLoadStatus("error");
-      }
-    }
-
-    loadManagerData();
-  }, [session.role, session.username]);
-
-  const teamRows = managerTasks.reduce((rows, task) => {
-    const employeeName = getPersonName(task.employee) || "Не назначен";
-    const current = rows.get(employeeName) || {
-      name: employeeName,
-      taskCount: 0,
-      progressSum: 0,
-    };
-
-    current.taskCount += 1;
-    current.progressSum += getTaskProgress(task);
-    rows.set(employeeName, current);
-
-    return rows;
-  }, new Map());
-  const teamMembers = Array.from(teamRows.values()).map((employee) => ({
-    ...employee,
-    progress: employee.taskCount === 0 ? 0 : Math.round(employee.progressSum / employee.taskCount),
-  }));
-  const teamProgress = managerTasks.length === 0
-    ? 0
-    : Math.round(managerTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / managerTasks.length);
-  const tasksInProgress = managerTasks.filter((task) => task.status === "in_progress").length;
-
-  return (
-    <>
-      <section className="hero manager-hero">
-        <p className="label">Кабинет руководителя</p>
-        <h1>Команда и задачи развития</h1>
-        <p>
-          Страница загружает профиль руководителя и задачи команды из backend API.
-        </p>
-        <p className="form-message">
-          {loadStatus === "loading" && "Загружаем данные руководителя..."}
-          {loadStatus === "success" && "Данные загружены из /api/auth/me/ и /api/tasks/."}
-          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
-        </p>
-      </section>
-
-      <section className="summary" aria-label="Сводка руководителя">
-        <article>
-          <span>Сотрудников</span>
-          <strong>{teamMembers.length}</strong>
-        </article>
-        <article>
-          <span>Средний прогресс</span>
-          <strong>{teamProgress}%</strong>
-        </article>
-        <article>
-          <span>В работе</span>
-          <strong>{tasksInProgress}</strong>
-        </article>
-      </section>
-
-      <section className="manager-layout">
-        <aside className="employee-panel">
-          <p className="label">Профиль</p>
-          <h2>{managerProfile.username || "Руководитель"}</h2>
-          <dl>
-            <div>
-              <dt>Роль</dt>
-              <dd>{ROLE_LABELS[managerProfile.role] || managerProfile.role || "Не указана"}</dd>
-            </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{managerProfile.email || "Не указан"}</dd>
-            </div>
-            <div>
-              <dt>Задач команды</dt>
-              <dd>{managerTasks.length}</dd>
-            </div>
-          </dl>
-        </aside>
-
-        <section className="manager-board" aria-label="Сотрудники и задачи">
-          <div className="section-heading">
-            <p className="label">Команда</p>
-            <h2>Прогресс сотрудников</h2>
-          </div>
-          <div className="employee-list">
-            {teamMembers.length === 0 && <p className="empty-state">Сотрудников с задачами пока нет.</p>}
-            {teamMembers.map((employee) => (
-              <article className="employee-row" key={employee.name}>
-                <div>
-                  <h3>{employee.name}</h3>
-                  <p>Данные рассчитаны по задачам из backend</p>
-                </div>
-                <div className="employee-row__stats">
-                  <span>{employee.taskCount} задач</span>
-                  <span>{employee.progress}%</span>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      </section>
-
-      <section className="manager-tasks">
-        <div className="section-heading">
-          <p className="label">Контроль</p>
-          <h2>Все задачи команды</h2>
-        </div>
-        <TaskGrid tasks={managerTasks} />
-      </section>
-    </>
-  );
-}
-
-
-function EmployeeTasksPage({ session }) {
-  const [employeeProfile, setEmployeeProfile] = useState({
-    username: session.username,
-    email: "",
-    role: session.role,
-  });
-  const [employeeTasks, setEmployeeTasks] = useState([]);
-  const [loadStatus, setLoadStatus] = useState("loading");
-
-  useEffect(() => {
-    async function loadEmployeeData() {
-      setLoadStatus("loading");
-
-      try {
-        const [profile, taskData] = await Promise.all([getMe(), getTasks()]);
-        setEmployeeProfile({
-          username: profile.username || session.username,
-          email: profile.email || "",
-          role: normalizeRole(profile.role || session.role),
-        });
-        setEmployeeTasks(getTaskList(taskData));
-        setLoadStatus("success");
-      } catch {
-        setEmployeeTasks([]);
-        setLoadStatus("error");
-      }
-    }
-
-    loadEmployeeData();
-  }, [session.role, session.username]);
-
-  const completedProgress = employeeTasks.length === 0
-    ? 0
-    : Math.round(
-        employeeTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / employeeTasks.length,
-      );
-
-  return (
-    <>
-      <section className="hero employee-hero">
-        <p className="label">Кабинет сотрудника</p>
-        <h1>Мои задачи развития</h1>
-        <p>
-          Страница загружает профиль сотрудника и его задачи из backend API.
-        </p>
-        <p className="form-message">
-          {loadStatus === "loading" && "Загружаем данные сотрудника..."}
-          {loadStatus === "success" && "Данные загружены из /api/auth/me/ и /api/tasks/."}
-          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
-        </p>
-      </section>
-
-      <section className="employee-layout">
-        <aside className="employee-panel">
-          <p className="label">Профиль</p>
-          <h2>{employeeProfile.username || "Сотрудник"}</h2>
-          <dl>
-            <div>
-              <dt>Роль</dt>
-              <dd>{ROLE_LABELS[employeeProfile.role] || employeeProfile.role || "Не указана"}</dd>
-            </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{employeeProfile.email || "Не указан"}</dd>
-            </div>
-            <div>
-              <dt>Активных задач</dt>
-              <dd>{employeeTasks.length}</dd>
-            </div>
-            <div>
-              <dt>Средний прогресс</dt>
-              <dd>{completedProgress}%</dd>
-            </div>
-          </dl>
-        </aside>
-
-        <section className="employee-content" aria-label="Задачи сотрудника">
-          <div className="section-heading">
-            <p className="label">План на неделю</p>
-            <h2>Назначенные задачи</h2>
-          </div>
-          <TaskGrid tasks={employeeTasks} />
-        </section>
-      </section>
-    </>
-  );
-}
-
-
 function TaskGrid({ tasks: taskList }) {
   if (taskList.length === 0) {
     return <p className="empty-state">Задач пока нет.</p>;
@@ -582,13 +342,17 @@ function TaskGrid({ tasks: taskList }) {
   );
 }
 
-function PrivateRoute({ authChecked, children, session }) {
+function PrivateRoute({ authChecked, children, role, session }) {
   if (!authChecked) {
     return <p className="empty-state">Проверяем авторизацию...</p>;
   }
 
   if (!session.isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (role && session.role !== role) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -711,14 +475,14 @@ export default function App() {
           path="/employee"
           element={(
             <PrivateRoute authChecked={authChecked} session={session}>
-              <EmployeeTasksPage session={session} />
+              <EmployeeTasks session={session} />
             </PrivateRoute>
           )}
         />
         <Route
           path="/manager"
           element={(
-            <PrivateRoute authChecked={authChecked} session={session}>
+            <PrivateRoute authChecked={authChecked} role="manager" session={session}>
               <ManagerPanel session={session} />
             </PrivateRoute>
           )}
