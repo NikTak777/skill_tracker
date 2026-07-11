@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 
-import { createTask, getMe, getSkills, getTasks } from "../api.js";
+import {
+  attachProgressToTasks,
+  createSkill,
+  createTask,
+  getEmployees,
+  getMe,
+  getSkills,
+  getTasks,
+} from "../api.js";
 import TaskCard from "../components/TaskCard.jsx";
+import TaskDetailModal from "../components/TaskDetailModal.jsx";
 
 
 const ROLE_LABELS = {
@@ -17,12 +26,17 @@ const INITIAL_FORM = {
   due_date: "",
 };
 
+const INITIAL_SKILL_FORM = {
+  name: "",
+  description: "",
+};
+
 function getList(data) {
   if (Array.isArray(data)) {
     return data;
   }
 
-  return data?.results || data?.tasks || data?.skills || [];
+  return data?.results || data?.tasks || data?.skills || data?.employees || [];
 }
 
 function getTaskProgress(task) {
@@ -50,7 +64,16 @@ function getPersonName(person) {
   return fullName || person.username || "";
 }
 
-function getApiErrorMessage(error) {
+function getEmployeeLabel(employee) {
+  const name = getPersonName(employee) || employee.username;
+  if (employee.email) {
+    return `${name} (${employee.email})`;
+  }
+
+  return name;
+}
+
+function getApiErrorMessage(error, fallback = "Запрос завершился ошибкой. Проверьте данные формы.") {
   const data = error.response?.data;
 
   if (!data) {
@@ -66,14 +89,14 @@ function getApiErrorMessage(error) {
   }
 
   if (data.errors) {
-    return "Ошибка валидации: проверьте title, skill ID, employee ID и due date.";
+    return "Ошибка валидации. Проверьте введённые данные.";
   }
 
   const fieldErrors = Object.entries(data)
     .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(" ") : value}`)
     .join(" ");
 
-  return fieldErrors || "Запрос завершился ошибкой. Проверьте данные формы.";
+  return fieldErrors || fallback;
 }
 
 export default function ManagerPanel({ session }) {
@@ -83,30 +106,55 @@ export default function ManagerPanel({ session }) {
     role: session.role,
   });
   const [skills, setSkills] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [managerTasks, setManagerTasks] = useState([]);
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [skillFormData, setSkillFormData] = useState(INITIAL_SKILL_FORM);
   const [loadStatus, setLoadStatus] = useState("loading");
   const [formStatus, setFormStatus] = useState("");
   const [formError, setFormError] = useState("");
+  const [skillFormStatus, setSkillFormStatus] = useState("");
+  const [skillFormError, setSkillFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingSkill, setIsCreatingSkill] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   async function loadManagerData() {
     setLoadStatus("loading");
 
     try {
-      const [profile, taskData, skillData] = await Promise.all([getMe(), getTasks(), getSkills()]);
+      const [profileResult, taskResult, skillResult, employeeResult] = await Promise.allSettled([
+        getMe(),
+        getTasks(),
+        getSkills(),
+        getEmployees(),
+      ]);
 
-      setManagerProfile({
-        username: profile.username || session.username,
-        email: profile.email || "",
-        role: String(profile.role || session.role || "").toLowerCase(),
-      });
-      setManagerTasks(getList(taskData));
-      setSkills(getList(skillData));
-      setLoadStatus("success");
+      if (profileResult.status === "fulfilled") {
+        const profile = profileResult.value;
+        setManagerProfile({
+          username: profile.username || session.username,
+          email: profile.email || "",
+          role: String(profile.role || session.role || "").toLowerCase(),
+        });
+      }
+
+      const tasks = taskResult.status === "fulfilled" ? getList(taskResult.value) : [];
+      const tasksWithProgress = await attachProgressToTasks(tasks);
+
+      setManagerTasks(tasksWithProgress);
+      setSkills(skillResult.status === "fulfilled" ? getList(skillResult.value) : []);
+      setEmployees(employeeResult.status === "fulfilled" ? getList(employeeResult.value) : []);
+
+      const hasCriticalError = [profileResult, taskResult, skillResult].some(
+        (result) => result.status === "rejected",
+      );
+
+      setLoadStatus(hasCriticalError ? "error" : "success");
     } catch {
       setManagerTasks([]);
       setSkills([]);
+      setEmployees([]);
       setLoadStatus("error");
     }
   }
@@ -121,6 +169,40 @@ export default function ManagerPanel({ session }) {
       ...currentData,
       [name]: value,
     }));
+  }
+
+  function updateSkillField(event) {
+    const { name, value } = event.target;
+    setSkillFormData((currentData) => ({
+      ...currentData,
+      [name]: value,
+    }));
+  }
+
+  async function handleSkillSubmit(event) {
+    event.preventDefault();
+    setSkillFormStatus("");
+    setSkillFormError("");
+    setIsCreatingSkill(true);
+
+    try {
+      const createdSkill = await createSkill({
+        name: skillFormData.name.trim(),
+        description: skillFormData.description.trim(),
+      });
+
+      setSkillFormData(INITIAL_SKILL_FORM);
+      setSkillFormStatus("Навык добавлен.");
+      setFormData((currentData) => ({
+        ...currentData,
+        skill: String(createdSkill.id),
+      }));
+      await loadManagerData();
+    } catch (error) {
+      setSkillFormError(getApiErrorMessage(error, "Не удалось создать навык."));
+    } finally {
+      setIsCreatingSkill(false);
+    }
   }
 
   async function handleSubmit(event) {
@@ -177,12 +259,12 @@ export default function ManagerPanel({ session }) {
         <p className="label">Кабинет руководителя</p>
         <h1>Создание задач и контроль сотрудников</h1>
         <p>
-          Руководитель создает задачи развития, назначает сотрудника по ID и контролирует список
-          своих задач из backend API.
+          Руководитель создаёт задачи, выбирает сотрудника из списка, добавляет навыки
+          и контролирует задачи команды через backend API.
         </p>
         <p className="form-message">
           {loadStatus === "loading" && "Загружаем данные руководителя..."}
-          {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/ и /api/skills/."}
+          {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/skills/ и /api/employees/."}
           {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
         </p>
       </section>
@@ -190,7 +272,7 @@ export default function ManagerPanel({ session }) {
       <section className="summary" aria-label="Сводка руководителя">
         <article>
           <span>Сотрудников</span>
-          <strong>{teamMembers.length}</strong>
+          <strong>{employees.length || teamMembers.length}</strong>
         </article>
         <article>
           <span>Средний прогресс</span>
@@ -203,72 +285,111 @@ export default function ManagerPanel({ session }) {
       </section>
 
       <section className="manager-layout">
-        <form className="manager-form" onSubmit={handleSubmit}>
-          <p className="label">Новая задача</p>
-          <h2>Поставить задачу</h2>
+        <div className="manager-forms">
+          <form className="manager-form" onSubmit={handleSubmit}>
+            <p className="label">Новая задача</p>
+            <h2>Поставить задачу</h2>
 
-          <label>
-            Название
-            <input
-              name="title"
-              type="text"
-              value={formData.title}
-              onChange={updateField}
-              required
-            />
-          </label>
+            <label>
+              Название
+              <input
+                name="title"
+                type="text"
+                value={formData.title}
+                onChange={updateField}
+                required
+              />
+            </label>
 
-          <label>
-            Описание
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={updateField}
-            />
-          </label>
+            <label>
+              Описание
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={updateField}
+              />
+            </label>
 
-          <label>
-            Навык
-            <select name="skill" value={formData.skill} onChange={updateField} required>
-              <option value="">Выберите навык</option>
-              {skills.map((skill) => (
-                <option key={skill.id} value={skill.id}>
-                  {skill.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label>
+              Навык
+              <select name="skill" value={formData.skill} onChange={updateField} required>
+                <option value="">Выберите навык</option>
+                {skills.map((skill) => (
+                  <option key={skill.id} value={skill.id}>
+                    {skill.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label>
-            ID сотрудника
-            <input
-              min="1"
-              name="employee"
-              placeholder="Например: 2"
-              type="number"
-              value={formData.employee}
-              onChange={updateField}
-              required
-            />
-          </label>
+            <label>
+              Сотрудник
+              <select name="employee" value={formData.employee} onChange={updateField} required>
+                <option value="">Выберите сотрудника</option>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {getEmployeeLabel(employee)}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label>
-            Срок
-            <input
-              name="due_date"
-              type="date"
-              value={formData.due_date}
-              onChange={updateField}
-            />
-          </label>
+            <label>
+              Срок
+              <input
+                name="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={updateField}
+              />
+            </label>
 
-          {formError && <p className="form-message form-message--error">{formError}</p>}
-          {formStatus && <p className="form-message">{formStatus}</p>}
+            {employees.length === 0 && (
+              <p className="form-message form-message--error">
+                Сотрудники не найдены. Зарегистрируйте пользователя с ролью employee.
+              </p>
+            )}
 
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Создаем..." : "Создать задачу"}
-          </button>
-        </form>
+            {formError && <p className="form-message form-message--error">{formError}</p>}
+            {formStatus && <p className="form-message">{formStatus}</p>}
+
+            <button type="submit" disabled={isSubmitting || employees.length === 0}>
+              {isSubmitting ? "Создаем..." : "Создать задачу"}
+            </button>
+          </form>
+
+          <form className="manager-form manager-skill-form" onSubmit={handleSkillSubmit}>
+            <p className="label">Справочник</p>
+            <h2>Новый навык</h2>
+
+            <label>
+              Название
+              <input
+                name="name"
+                type="text"
+                value={skillFormData.name}
+                onChange={updateSkillField}
+                required
+              />
+            </label>
+
+            <label>
+              Описание
+              <textarea
+                name="description"
+                value={skillFormData.description}
+                onChange={updateSkillField}
+              />
+            </label>
+
+            {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
+            {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
+
+            <button type="submit" disabled={isCreatingSkill}>
+              {isCreatingSkill ? "Сохраняем..." : "Добавить навык"}
+            </button>
+          </form>
+        </div>
 
         <section className="manager-board" aria-label="Профиль и сотрудники">
           <div className="section-heading">
@@ -288,6 +409,10 @@ export default function ManagerPanel({ session }) {
             <div>
               <dt>Задач команды</dt>
               <dd>{managerTasks.length}</dd>
+            </div>
+            <div>
+              <dt>Навыков в справочнике</dt>
+              <dd>{skills.length}</dd>
             </div>
           </dl>
 
@@ -321,10 +446,17 @@ export default function ManagerPanel({ session }) {
         <section className="task-grid" aria-label="Список задач руководителя">
           {managerTasks.length === 0 && <p className="empty-state">Задач пока нет.</p>}
           {managerTasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard key={task.id} onOpenDetail={setSelectedTask} task={task} />
           ))}
         </section>
       </section>
+
+      <TaskDetailModal
+        isOpen={Boolean(selectedTask)}
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdated={loadManagerData}
+      />
     </>
   );
 }

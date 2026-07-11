@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
-import { getAccessToken, getMe, getTasks, login, register } from "./api.js";
+import { getAccessToken, getMe, getTasksWithProgress, login, register } from "./api.js";
 import Navbar from "./components/Navbar.jsx";
 import TaskCard from "./components/TaskCard.jsx";
+import TaskDetailModal from "./components/TaskDetailModal.jsx";
 import EmployeeTasks from "./pages/EmployeeTasks.jsx";
 import ManagerPanel from "./pages/ManagerPanel.jsx";
 import "./styles.css";
@@ -40,20 +41,20 @@ function getTaskProgress(task) {
 function DashboardPage({ onNavigate, session }) {
   const [dashboardTasks, setDashboardTasks] = useState([]);
   const [loadStatus, setLoadStatus] = useState("loading");
+  const [selectedTask, setSelectedTask] = useState(null);
+
+  async function loadTasks() {
+    try {
+      const taskList = await getTasksWithProgress();
+      setDashboardTasks(taskList);
+      setLoadStatus("success");
+    } catch {
+      setDashboardTasks([]);
+      setLoadStatus("error");
+    }
+  }
 
   useEffect(() => {
-    async function loadTasks() {
-      try {
-        const data = await getTasks();
-        const taskList = getTaskList(data);
-        setDashboardTasks(taskList);
-        setLoadStatus("success");
-      } catch {
-        setDashboardTasks([]);
-        setLoadStatus("error");
-      }
-    }
-
     loadTasks();
   }, []);
 
@@ -118,7 +119,15 @@ function DashboardPage({ onNavigate, session }) {
         </button>
       </section>
 
-      <TaskGrid tasks={dashboardTasks} />
+      <TaskGrid onOpenDetail={setSelectedTask} tasks={dashboardTasks} />
+
+      <TaskDetailModal
+        canAddProgress={session.role === "employee"}
+        isOpen={Boolean(selectedTask)}
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdated={loadTasks}
+      />
     </>
   );
 }
@@ -328,7 +337,7 @@ function AuthPage({ initialMode = "login", onAuthSuccess }) {
 }
 
 
-function TaskGrid({ tasks: taskList }) {
+function TaskGrid({ onOpenDetail, tasks: taskList }) {
   if (taskList.length === 0) {
     return <p className="empty-state">Задач пока нет.</p>;
   }
@@ -336,7 +345,7 @@ function TaskGrid({ tasks: taskList }) {
   return (
     <section className="task-grid" aria-label="Список задач">
       {taskList.map((task) => (
-        <TaskCard key={task.id} task={task} />
+        <TaskCard key={task.id} onOpenDetail={onOpenDetail} task={task} />
       ))}
     </section>
   );

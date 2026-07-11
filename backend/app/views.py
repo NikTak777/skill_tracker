@@ -217,15 +217,6 @@ class SkillViewSet(
 class EmployeeListView(generics.ListAPIView):
     serializer_class = UserReadSerializer
     permission_classes = [permissions.IsAuthenticated, IsManager]
+
     def get_queryset(self):
         return User.objects.filter(role=User.Role.EMPLOYEE).order_by("username")
-    def get_permissions(self):
-        if self.action == "create":
-            return [permissions.IsAuthenticated(), IsManager()]
-        return [permissions.IsAuthenticated()]
-
-    def create(self, request, *args, **kwargs):
-        error_response = validate_request(SkillCreateSchema, request.data)
-        if error_response:
-            return error_response
-        return super().create(request, *args, **kwargs)

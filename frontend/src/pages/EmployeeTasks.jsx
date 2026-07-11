@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { getMe, getProgress, getTasks, updateTask } from "../api.js";
+import { getMe, getTasksWithProgress, updateTask } from "../api.js";
 import TaskCard from "../components/TaskCard.jsx";
+import TaskDetailModal from "../components/TaskDetailModal.jsx";
 
 
 const ROLE_LABELS = {
@@ -18,23 +19,6 @@ const STATUS_ACTION_LABELS = {
   todo: "Взять в работу",
   in_progress: "Завершить",
 };
-
-function getList(data) {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  return data?.results || data?.tasks || [];
-}
-
-function getLatestProgressPercent(progressData) {
-  const entries = getList(progressData);
-  if (entries.length === 0) {
-    return 0;
-  }
-
-  return entries[0].percent || 0;
-}
 
 function getTaskProgress(task) {
   if (typeof task.progress === "number") {
@@ -54,38 +38,21 @@ export default function EmployeeTasks({ session }) {
   const [loadStatus, setLoadStatus] = useState("loading");
   const [statusError, setStatusError] = useState("");
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   async function loadEmployeeData() {
     setLoadStatus("loading");
     setStatusError("");
 
     try {
-      const [profile, taskData] = await Promise.all([getMe(), getTasks()]);
-      const tasks = getList(taskData);
-
-      const tasksWithProgress = await Promise.all(
-        tasks.map(async (task) => {
-          try {
-            const progressData = await getProgress(task.id);
-            return {
-              ...task,
-              progress: getLatestProgressPercent(progressData),
-            };
-          } catch {
-            return {
-              ...task,
-              progress: 0,
-            };
-          }
-        }),
-      );
+      const [profile, taskList] = await Promise.all([getMe(), getTasksWithProgress()]);
 
       setEmployeeProfile({
         username: profile.username || session.username,
         email: profile.email || "",
         role: String(profile.role || session.role || "").toLowerCase(),
       });
-      setEmployeeTasks(tasksWithProgress);
+      setEmployeeTasks(taskList);
       setLoadStatus("success");
     } catch {
       setEmployeeTasks([]);
@@ -131,11 +98,11 @@ export default function EmployeeTasks({ session }) {
         <p className="label">Кабинет сотрудника</p>
         <h1>Мои задачи развития</h1>
         <p>
-          Страница загружает задачи сотрудника, прогресс из /api/progress/ и позволяет менять статус.
+          Страница загружает задачи сотрудника, прогресс, комментарии и позволяет менять статус.
         </p>
         <p className="form-message">
           {loadStatus === "loading" && "Загружаем данные сотрудника..."}
-          {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/ и /api/progress/."}
+          {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/progress/ и /api/comments/."}
           {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
         </p>
         {statusError && <p className="form-message form-message--error">{statusError}</p>}
@@ -179,6 +146,7 @@ export default function EmployeeTasks({ session }) {
                 actionLabel={STATUS_ACTION_LABELS[task.status]}
                 isUpdating={updatingTaskId === task.id}
                 key={task.id}
+                onOpenDetail={setSelectedTask}
                 onStatusChange={handleStatusChange}
                 showStatusAction
                 task={task}
@@ -187,6 +155,14 @@ export default function EmployeeTasks({ session }) {
           </section>
         </section>
       </section>
+
+      <TaskDetailModal
+        canAddProgress
+        isOpen={Boolean(selectedTask)}
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdated={loadEmployeeData}
+      />
     </>
   );
 }
