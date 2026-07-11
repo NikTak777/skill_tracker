@@ -38,7 +38,13 @@ function getTaskProgress(task) {
   return 0;
 }
 
-export default function TaskCard({ task }) {
+export default function TaskCard({
+  actionLabel,
+  isUpdating = false,
+  onStatusChange,
+  showStatusAction = false,
+  task,
+}) {
   const skill = getSkillName(task.skill);
   const employee = getPersonName(task.employee) || task.owner;
   const manager = getPersonName(task.manager);
@@ -59,6 +65,16 @@ export default function TaskCard({ task }) {
         {manager && <span>Руководитель: {manager}</span>}
         <span>Срок: {dueDate}</span>
       </div>
+      {showStatusAction && actionLabel && onStatusChange && (
+        <button
+          className="task-card__action"
+          disabled={isUpdating}
+          type="button"
+          onClick={() => onStatusChange(task)}
+        >
+          {isUpdating ? "Сохраняем..." : actionLabel}
+        </button>
+      )}
     </article>
   );
 }
