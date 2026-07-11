@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 
 import { getMe, getTasksWithProgress, updateTask } from "../api.js";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
+import { useSession } from "../context/SessionContext.jsx";
 
 
 const ROLE_LABELS = {
@@ -28,7 +30,8 @@ function getTaskProgress(task) {
   return 0;
 }
 
-export default function EmployeeTasks({ session }) {
+export default function EmployeeTasks() {
+  const { session } = useSession();
   const [employeeProfile, setEmployeeProfile] = useState({
     username: session.username,
     email: "",
@@ -92,6 +95,10 @@ export default function EmployeeTasks({ session }) {
         employeeTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / employeeTasks.length,
       );
 
+  if (loadStatus === "loading") {
+    return <LoadingSpinner label="Загружаем данные сотрудника..." />;
+  }
+
   return (
     <>
       <section className="hero employee-hero">
@@ -101,7 +108,6 @@ export default function EmployeeTasks({ session }) {
           Страница загружает задачи сотрудника, прогресс, комментарии и позволяет менять статус.
         </p>
         <p className="form-message">
-          {loadStatus === "loading" && "Загружаем данные сотрудника..."}
           {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/progress/ и /api/comments/."}
           {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
         </p>
