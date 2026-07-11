@@ -12,6 +12,7 @@ from .pydantic_schemas import (
     validate_request,
     ProgressCreateSchema,
     CommentCreateSchema,
+    SkillCreateSchema,
 )
 from .serializers import (
     TaskCreateSerializer,
@@ -203,6 +204,7 @@ class CommentViewSet(
 
 
 class SkillViewSet(
+    mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
@@ -217,3 +219,13 @@ class EmployeeListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsManager]
     def get_queryset(self):
         return User.objects.filter(role=User.Role.EMPLOYEE).order_by("username")
+    def get_permissions(self):
+        if self.action == "create":
+            return [permissions.IsAuthenticated(), IsManager()]
+        return [permissions.IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        error_response = validate_request(SkillCreateSchema, request.data)
+        if error_response:
+            return error_response
+        return super().create(request, *args, **kwargs)
