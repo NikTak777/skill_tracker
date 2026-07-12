@@ -10,6 +10,10 @@ import Login from "./pages/Login.jsx";
 import ManagerPanel from "./pages/ManagerPanel.jsx";
 import "./styles.css";
 
+const ROLE_LABELS = {
+  manager: "Руководитель",
+  employee: "Сотрудник",
+};
 
 export default function App() {
   return (
