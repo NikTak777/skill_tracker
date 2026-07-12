@@ -216,6 +216,7 @@ class SkillViewSet(
     queryset = Skill.objects.all().order_by("name")
     serializer_class = SkillSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     def get_permissions(self):
         if self.action == "create":
             return [permissions.IsAuthenticated(), IsManager()]
@@ -225,6 +226,7 @@ class SkillViewSet(
         if error_response:
             return error_response
         return super().create(request, *args, **kwargs)
+
 class EmployeeListView(generics.ListAPIView):
     serializer_class = UserReadSerializer
     permission_classes = [permissions.IsAuthenticated, IsManager]
