@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Comment, Progress, Skill, Task, User
+from .models import User, Skill, Task, Progress, Comment
 
 
 @admin.register(User)

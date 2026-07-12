@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, EmailStr, Field, ValidationError
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -17,7 +17,7 @@ def validate_request(schema_class: type[BaseModel], data: dict) -> Response | No
 
 class UserRegisterSchema(BaseModel):
     username: str = Field(min_length=3, max_length=150)
-    email: str | None = None
+    email: EmailStr | None = None
     password: str = Field(min_length=8)
     role: Literal["manager", "employee"]
     first_name: str = ""
@@ -43,3 +43,12 @@ class ProgressCreateSchema(BaseModel):
     task: int = Field(gt=0)
     percent: int = Field(ge=0, le=100)
     note: str = ""
+
+
+class CommentCreateSchema(BaseModel):
+    task: int = Field(gt=0)
+    text: str = Field(min_length=1)
+
+class SkillCreateSchema(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str = ""
