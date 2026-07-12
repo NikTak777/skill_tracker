@@ -1,76 +1,67 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { getAccessToken, getMe, getTasks, login, register } from "./api.js";
 import Navbar from "./components/Navbar.jsx";
 import TaskCard from "./components/TaskCard.jsx";
 import "./styles.css";
 
+const ROLE_LABELS = {
+  manager: "Руководитель",
+  employee: "Сотрудник",
+};
 
-const tasks = [
-  {
-    id: 1,
-    title: "Задача 1",
-    owner: "Анна Петрова",
-    skill: "Умение 1",
-    status: "В работе",
-    progress: 65,
-    deadline: "05.07.2026",
-    description: "комент 1",
-  },
-  {
-    id: 2,
-    title: "Задача 2",
-    owner: "Иван Соколов",
-    skill: "умение 2",
-    status: "Запланировано",
-    progress: 20,
-    deadline: "08.07.2026",
-    description: "комент2 ",
-  },
-  {
-    id: 3,
-    title: "Задача 3",
-    owner: "Мария Иванова",
-    skill: "умение 3",
-    status: "Проверка",
-    progress: 80,
-    deadline: "10.07.2026",
-    description: "комент 3",
-  },
-];
+function normalizeRole(role) {
+  return String(role || "").toLowerCase();
+}
 
-const employees = [
-  {
-    id: 1,
-    name: "Анна Петрова",
-    role: "Frontend trainee",
-  },
-  {
-    id: 2,
-    name: "Иван Соколов",
-    role: "DevOps trainee",
-  },
-  {
-    id: 3,
-    name: "Мария Иванова",
-    role: "Backend trainee",
-  },
-];
+function getTaskList(data) {
+  if (Array.isArray(data)) {
+    return data;
+  }
 
-function DashboardPage() {
-  const [dashboardTasks, setDashboardTasks] = useState(tasks);
+  return data?.results || data?.tasks || [];
+}
+
+function getTaskProgress(task) {
+  if (typeof task.progress === "number") {
+    return task.progress;
+  }
+
+  if (Array.isArray(task.progress_entries) && task.progress_entries.length > 0) {
+    return task.progress_entries[0].percent;
+  }
+
+  return 0;
+}
+
+function getPersonName(person) {
+  if (!person) {
+    return "";
+  }
+
+  if (typeof person === "string") {
+    return person;
+  }
+
+  const fullName = [person.first_name, person.last_name].filter(Boolean).join(" ");
+  return fullName || person.username || "";
+}
+
+function DashboardPage({ onNavigate, session }) {
+  const [dashboardTasks, setDashboardTasks] = useState([]);
   const [loadStatus, setLoadStatus] = useState("loading");
 
   useEffect(() => {
     async function loadTasks() {
       try {
         const data = await getTasks();
-        const taskList = Array.isArray(data) ? data : data.results || data.tasks || [];
+        const taskList = getTaskList(data);
         setDashboardTasks(taskList);
         setLoadStatus("success");
       } catch {
-        setDashboardTasks(tasks);
-        setLoadStatus("fallback");
+        setDashboardTasks([]);
+        setLoadStatus("error");
       }
     }
 
@@ -80,7 +71,7 @@ function DashboardPage() {
   const averageProgress = dashboardTasks.length === 0
     ? 0
     : Math.round(
-        dashboardTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / dashboardTasks.length,
+        dashboardTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / dashboardTasks.length,
       );
   const skillsCount = new Set(
     dashboardTasks.map((task) => (typeof task.skill === "string" ? task.skill : task.skill?.name)).filter(Boolean),
@@ -92,12 +83,12 @@ function DashboardPage() {
         <p className="label">SkillTracker</p>
         <h1>Витрина задач развития</h1>
         <p>
-          Dashboard загружает задачи из backend API. Если API недоступно, показываются демо-данные.
+          Dashboard загружает задачи из backend API для текущего пользователя.
         </p>
         <p className="form-message">
           {loadStatus === "loading" && "Загружаем задачи..."}
           {loadStatus === "success" && "Задачи загружены из /api/tasks/."}
-          {loadStatus === "fallback" && "Backend недоступен или нет доступа, показаны демо-данные."}
+          {loadStatus === "error" && "Не удалось загрузить задачи. Проверьте backend и авторизацию."}
         </p>
       </section>
 
@@ -116,14 +107,36 @@ function DashboardPage() {
         </article>
       </section>
 
+      <section className="role-panel">
+        <div>
+          <p className="label">Главная после входа</p>
+          <h2>
+            {session.role === "manager"
+              ? "Панель руководителя"
+              : "Панель сотрудника"}
+          </h2>
+          <p>
+            {session.role === "manager"
+              ? "Вы можете перейти к управлению задачами команды."
+              : "Вы можете перейти к списку своих задач развития."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate(session.role === "manager" ? "/manager" : "/employee")}
+        >
+          {session.role === "manager" ? "Открыть панель управления" : "Открыть мои задачи"}
+        </button>
+      </section>
+
       <TaskGrid tasks={dashboardTasks} />
     </>
   );
 }
 
 
-function AuthPage({ onAuthSuccess }) {
-  const [mode, setMode] = useState("login");
+function AuthPage({ initialMode = "login", onAuthSuccess }) {
+  const [mode, setMode] = useState(initialMode);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -134,6 +147,10 @@ function AuthPage({ onAuthSuccess }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isLogin = mode === "login";
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   function updateField(event) {
     const { name, value } = event.target;
@@ -207,10 +224,22 @@ function AuthPage({ onAuthSuccess }) {
         password: formData.password,
         role: formData.role,
       });
+      await login({
+        username: formData.username,
+        password: formData.password,
+      });
+
+      let profile = user;
+      try {
+        profile = await getMe();
+      } catch {
+        // Если /auth/me/ временно недоступен, используем ответ регистрации.
+      }
+
       setStatusMessage("Регистрация выполнена. Переходим на Dashboard.");
       onAuthSuccess({
-        role: user.role || formData.role,
-        username: user.username || formData.username,
+        role: profile.role || formData.role,
+        username: profile.username || formData.username,
       });
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -310,11 +339,59 @@ function AuthPage({ onAuthSuccess }) {
 }
 
 
-function ManagerPage() {
-  const teamProgress = Math.round(
-    tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length,
-  );
-  const tasksInProgress = tasks.filter((task) => task.status === "В работе").length;
+function ManagerPage({ session }) {
+  const [managerProfile, setManagerProfile] = useState({
+    username: session.username,
+    email: "",
+    role: session.role,
+  });
+  const [managerTasks, setManagerTasks] = useState([]);
+  const [loadStatus, setLoadStatus] = useState("loading");
+
+  useEffect(() => {
+    async function loadManagerData() {
+      setLoadStatus("loading");
+
+      try {
+        const [profile, taskData] = await Promise.all([getMe(), getTasks()]);
+        setManagerProfile({
+          username: profile.username || session.username,
+          email: profile.email || "",
+          role: normalizeRole(profile.role || session.role),
+        });
+        setManagerTasks(getTaskList(taskData));
+        setLoadStatus("success");
+      } catch {
+        setManagerTasks([]);
+        setLoadStatus("error");
+      }
+    }
+
+    loadManagerData();
+  }, [session.role, session.username]);
+
+  const teamRows = managerTasks.reduce((rows, task) => {
+    const employeeName = getPersonName(task.employee) || "Не назначен";
+    const current = rows.get(employeeName) || {
+      name: employeeName,
+      taskCount: 0,
+      progressSum: 0,
+    };
+
+    current.taskCount += 1;
+    current.progressSum += getTaskProgress(task);
+    rows.set(employeeName, current);
+
+    return rows;
+  }, new Map());
+  const teamMembers = Array.from(teamRows.values()).map((employee) => ({
+    ...employee,
+    progress: employee.taskCount === 0 ? 0 : Math.round(employee.progressSum / employee.taskCount),
+  }));
+  const teamProgress = managerTasks.length === 0
+    ? 0
+    : Math.round(managerTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / managerTasks.length);
+  const tasksInProgress = managerTasks.filter((task) => task.status === "in_progress").length;
 
   return (
     <>
@@ -322,15 +399,19 @@ function ManagerPage() {
         <p className="label">Кабинет руководителя</p>
         <h1>Команда и задачи развития</h1>
         <p>
-          Страница помогает руководителю видеть прогресс сотрудников, назначенные задачи и
-          прототип формы для постановки новой задачи.
+          Страница загружает профиль руководителя и задачи команды из backend API.
+        </p>
+        <p className="form-message">
+          {loadStatus === "loading" && "Загружаем данные руководителя..."}
+          {loadStatus === "success" && "Данные загружены из /api/auth/me/ и /api/tasks/."}
+          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
         </p>
       </section>
 
       <section className="summary" aria-label="Сводка руководителя">
         <article>
           <span>Сотрудников</span>
-          <strong>{employees.length}</strong>
+          <strong>{teamMembers.length}</strong>
         </article>
         <article>
           <span>Средний прогресс</span>
@@ -343,33 +424,24 @@ function ManagerPage() {
       </section>
 
       <section className="manager-layout">
-        <form className="manager-form">
-          <p className="label">Новая задача</p>
-          <h2>Поставить задачу</h2>
-          <label>
-            Название
-            <input type="text" placeholder="" />
-          </label>
-          <label>
-            Сотрудник
-            <select defaultValue="Анна Петрова">
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.name}>
-                  {employee.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Навык
-            <input type="text" placeholder="" />
-          </label>
-          <label>
-            Описание
-            <textarea placeholder="" />
-          </label>
-          <button type="button">Создать задачу</button>
-        </form>
+        <aside className="employee-panel">
+          <p className="label">Профиль</p>
+          <h2>{managerProfile.username || "Руководитель"}</h2>
+          <dl>
+            <div>
+              <dt>Роль</dt>
+              <dd>{ROLE_LABELS[managerProfile.role] || managerProfile.role || "Не указана"}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{managerProfile.email || "Не указан"}</dd>
+            </div>
+            <div>
+              <dt>Задач команды</dt>
+              <dd>{managerTasks.length}</dd>
+            </div>
+          </dl>
+        </aside>
 
         <section className="manager-board" aria-label="Сотрудники и задачи">
           <div className="section-heading">
@@ -377,27 +449,19 @@ function ManagerPage() {
             <h2>Прогресс сотрудников</h2>
           </div>
           <div className="employee-list">
-            {employees.map((employee) => {
-              const employeeTasks = tasks.filter((task) => task.owner === employee.name);
-              const progress = employeeTasks.length === 0
-                ? 0
-                : Math.round(
-                    employeeTasks.reduce((sum, task) => sum + task.progress, 0) / employeeTasks.length,
-                  );
-
-              return (
-                <article className="employee-row" key={employee.id}>
-                  <div>
-                    <h3>{employee.name}</h3>
-                    <p>{employee.role}</p>
-                  </div>
-                  <div className="employee-row__stats">
-                    <span>{employeeTasks.length} задач</span>
-                    <span>{progress}%</span>
-                  </div>
-                </article>
-              );
-            })}
+            {teamMembers.length === 0 && <p className="empty-state">Сотрудников с задачами пока нет.</p>}
+            {teamMembers.map((employee) => (
+              <article className="employee-row" key={employee.name}>
+                <div>
+                  <h3>{employee.name}</h3>
+                  <p>Данные рассчитаны по задачам из backend</p>
+                </div>
+                <div className="employee-row__stats">
+                  <span>{employee.taskCount} задач</span>
+                  <span>{employee.progress}%</span>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       </section>
@@ -407,22 +471,49 @@ function ManagerPage() {
           <p className="label">Контроль</p>
           <h2>Все задачи команды</h2>
         </div>
-        <TaskGrid tasks={tasks} />
+        <TaskGrid tasks={managerTasks} />
       </section>
     </>
   );
 }
 
 
-function EmployeeTasksPage() {
-  const employeeName = "Анна Петрова";
-  const employeeTasks = useMemo(
-    () => tasks.filter((task) => task.owner === employeeName),
-    [],
-  );
-  const completedProgress = Math.round(
-    employeeTasks.reduce((sum, task) => sum + task.progress, 0) / employeeTasks.length,
-  );
+function EmployeeTasksPage({ session }) {
+  const [employeeProfile, setEmployeeProfile] = useState({
+    username: session.username,
+    email: "",
+    role: session.role,
+  });
+  const [employeeTasks, setEmployeeTasks] = useState([]);
+  const [loadStatus, setLoadStatus] = useState("loading");
+
+  useEffect(() => {
+    async function loadEmployeeData() {
+      setLoadStatus("loading");
+
+      try {
+        const [profile, taskData] = await Promise.all([getMe(), getTasks()]);
+        setEmployeeProfile({
+          username: profile.username || session.username,
+          email: profile.email || "",
+          role: normalizeRole(profile.role || session.role),
+        });
+        setEmployeeTasks(getTaskList(taskData));
+        setLoadStatus("success");
+      } catch {
+        setEmployeeTasks([]);
+        setLoadStatus("error");
+      }
+    }
+
+    loadEmployeeData();
+  }, [session.role, session.username]);
+
+  const completedProgress = employeeTasks.length === 0
+    ? 0
+    : Math.round(
+        employeeTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / employeeTasks.length,
+      );
 
   return (
     <>
@@ -430,18 +521,27 @@ function EmployeeTasksPage() {
         <p className="label">Кабинет сотрудника</p>
         <h1>Мои задачи развития</h1>
         <p>
-          Страница показывает задачи конкретного сотрудника, их статусы, сроки и текущий прогресс.
+          Страница загружает профиль сотрудника и его задачи из backend API.
+        </p>
+        <p className="form-message">
+          {loadStatus === "loading" && "Загружаем данные сотрудника..."}
+          {loadStatus === "success" && "Данные загружены из /api/auth/me/ и /api/tasks/."}
+          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
         </p>
       </section>
 
       <section className="employee-layout">
         <aside className="employee-panel">
           <p className="label">Профиль</p>
-          <h2>{employeeName}</h2>
+          <h2>{employeeProfile.username || "Сотрудник"}</h2>
           <dl>
             <div>
               <dt>Роль</dt>
-              <dd>Frontend trainee</dd>
+              <dd>{ROLE_LABELS[employeeProfile.role] || employeeProfile.role || "Не указана"}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{employeeProfile.email || "Не указан"}</dd>
             </div>
             <div>
               <dt>Активных задач</dt>
@@ -481,14 +581,70 @@ function TaskGrid({ tasks: taskList }) {
   );
 }
 
+function PrivateRoute({ authChecked, children, session }) {
+  if (!authChecked) {
+    return <p className="empty-state">Проверяем авторизацию...</p>;
+  }
+
+  if (!session.isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
 
 export default function App() {
-  const [activePage, setActivePage] = useState("showcase");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [authChecked, setAuthChecked] = useState(false);
   const [session, setSession] = useState(() => ({
     isAuthenticated: Boolean(getAccessToken()),
     role: localStorage.getItem("skilltracker_user_role") || "",
     username: localStorage.getItem("skilltracker_username") || "",
   }));
+
+  useEffect(() => {
+    async function loadCurrentUser() {
+      const token = getAccessToken();
+
+      if (!token) {
+        setSession({
+          isAuthenticated: false,
+          role: "",
+          username: "",
+        });
+        setAuthChecked(true);
+        return;
+      }
+
+      try {
+        const profile = await getMe();
+        const role = normalizeRole(profile.role);
+        const username = profile.username || "";
+
+        localStorage.setItem("skilltracker_user_role", role);
+        localStorage.setItem("skilltracker_username", username);
+        setSession({
+          isAuthenticated: true,
+          role,
+          username,
+        });
+      } catch {
+        localStorage.removeItem("skilltracker_user_role");
+        localStorage.removeItem("skilltracker_username");
+        setSession({
+          isAuthenticated: false,
+          role: "",
+          username: "",
+        });
+      } finally {
+        setAuthChecked(true);
+      }
+    }
+
+    loadCurrentUser();
+  }, []);
 
   useEffect(() => {
     function handleUnauthorized() {
@@ -499,22 +655,25 @@ export default function App() {
       });
       localStorage.removeItem("skilltracker_user_role");
       localStorage.removeItem("skilltracker_username");
-      setActivePage("auth");
+      navigate("/login", { replace: true });
     }
 
     window.addEventListener("auth:unauthorized", handleUnauthorized);
     return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
-  }, []);
+  }, [navigate]);
 
   function handleAuthSuccess({ role, username }) {
-    localStorage.setItem("skilltracker_user_role", role);
+    const normalizedRole = normalizeRole(role);
+
+    localStorage.setItem("skilltracker_user_role", normalizedRole);
     localStorage.setItem("skilltracker_username", username);
     setSession({
       isAuthenticated: true,
-      role,
+      role: normalizedRole,
       username,
     });
-    setActivePage("showcase");
+    setAuthChecked(true);
+    navigate("/dashboard", { replace: true });
   }
 
   function handleLogout() {
@@ -523,21 +682,48 @@ export default function App() {
       role: "",
       username: "",
     });
+    navigate("/login", { replace: true });
   }
 
   return (
     <main className="page">
       <Navbar
-        activePage={activePage}
+        activePath={location.pathname}
         onLogout={handleLogout}
-        onNavigate={setActivePage}
+        onNavigate={navigate}
         session={session}
       />
 
-      {activePage === "showcase" && <DashboardPage />}
-      {activePage === "auth" && <AuthPage onAuthSuccess={handleAuthSuccess} />}
-      {activePage === "employee" && <EmployeeTasksPage />}
-      {activePage === "manager" && <ManagerPage />}
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<AuthPage initialMode="login" onAuthSuccess={handleAuthSuccess} />} />
+        <Route path="/register" element={<AuthPage initialMode="register" onAuthSuccess={handleAuthSuccess} />} />
+        <Route
+          path="/dashboard"
+          element={(
+            <PrivateRoute authChecked={authChecked} session={session}>
+              <DashboardPage onNavigate={navigate} session={session} />
+            </PrivateRoute>
+          )}
+        />
+        <Route
+          path="/employee"
+          element={(
+            <PrivateRoute authChecked={authChecked} session={session}>
+              <EmployeeTasksPage session={session} />
+            </PrivateRoute>
+          )}
+        />
+        <Route
+          path="/manager"
+          element={(
+            <PrivateRoute authChecked={authChecked} session={session}>
+              <ManagerPage session={session} />
+            </PrivateRoute>
+          )}
+        />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </main>
   );
 }
