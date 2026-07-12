@@ -5,7 +5,10 @@ import { SessionProvider } from "./context/SessionContext.jsx";
 import AppLayout from "./layouts/AppLayout.jsx";
 import AuthLayout from "./layouts/AuthLayout.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import EmployeeTasks from "./pages/EmployeeTasks.jsx";
 import Login from "./pages/Login.jsx";
+import ManagerPanel from "./pages/ManagerPanel.jsx";
+import Register from "./pages/Register.jsx";
 import "./styles.css";
 
 const ROLE_LABELS = {
@@ -26,7 +29,14 @@ export default function App() {
               </GuestRoute>
             )}
           />
-          <Route path="/register" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/register"
+            element={(
+              <GuestRoute>
+                <Register />
+              </GuestRoute>
+            )}
+          />
         </Route>
 
         <Route element={<AppLayout />}>
@@ -39,8 +49,22 @@ export default function App() {
               </PrivateRoute>
             )}
           />
-          <Route path="/employee" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/manager" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/employee"
+            element={(
+              <PrivateRoute role="employee">
+                <EmployeeTasks />
+              </PrivateRoute>
+            )}
+          />
+          <Route
+            path="/manager"
+            element={(
+              <PrivateRoute role="manager">
+                <ManagerPanel />
+              </PrivateRoute>
+            )}
+          />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
