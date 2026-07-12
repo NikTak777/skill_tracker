@@ -227,8 +227,33 @@ class SkillViewSet(
             return error_response
         return super().create(request, *args, **kwargs)
 
-class EmployeeListView(generics.ListAPIView):
-    serializer_class = UserReadSerializer
+
+class EmployeeListView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsManager]
+
     def get_queryset(self):
         return User.objects.filter(role=User.Role.EMPLOYEE).order_by("username")
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return UserWriteSerializer
+        return UserReadSerializer
+
+    def create(self, request, *args, **kwargs):
+        payload = {
+            **request.data,
+            "role": User.Role.EMPLOYEE,
+        }
+
+        error_response = validate_request(UserRegisterSchema, payload)
+        if error_response:
+            return error_response
+
+        serializer = self.get_serializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        return Response(
+            UserReadSerializer(user).data,
+            status=status.HTTP_201_CREATED,
+        )
