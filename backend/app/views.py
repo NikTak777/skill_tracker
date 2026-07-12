@@ -144,6 +144,8 @@ class ProgressViewSet(
         task = serializer.validated_data["task"]
         if task.employee != request.user:
             raise PermissionDenied("Прогресс можно добавить только к своей задаче.")
+            
+            
 
         serializer.save()
         headers = self.get_success_headers(serializer.data)
@@ -198,9 +200,11 @@ class CommentViewSet(
         headers = self.get_success_headers(serializer.data)
         return Response(
             CommentReadSerializer(serializer.instance).data,
+
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
+
 
 
 class SkillViewSet(
@@ -217,17 +221,14 @@ class SkillViewSet(
         if self.action == "create":
             return [permissions.IsAuthenticated(), IsManager()]
         return [permissions.IsAuthenticated()]
-
     def create(self, request, *args, **kwargs):
         error_response = validate_request(SkillCreateSchema, request.data)
         if error_response:
             return error_response
         return super().create(request, *args, **kwargs)
 
-
 class EmployeeListView(generics.ListAPIView):
     serializer_class = UserReadSerializer
     permission_classes = [permissions.IsAuthenticated, IsManager]
-
     def get_queryset(self):
         return User.objects.filter(role=User.Role.EMPLOYEE).order_by("username")
