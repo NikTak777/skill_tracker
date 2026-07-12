@@ -38,7 +38,14 @@ function getTaskProgress(task) {
   return 0;
 }
 
-export default function TaskCard({ task }) {
+export default function TaskCard({
+  actionLabel,
+  isUpdating = false,
+  onOpenDetail,
+  onStatusChange,
+  showStatusAction = false,
+  task,
+}) {
   const skill = getSkillName(task.skill);
   const employee = getPersonName(task.employee) || task.owner;
   const manager = getPersonName(task.manager);
@@ -46,18 +53,45 @@ export default function TaskCard({ task }) {
   const progress = getTaskProgress(task);
 
   return (
-    <article className="task-card">
+    <article className={`task-card${onOpenDetail ? " task-card--interactive" : ""}`}>
       <div className="task-card__top">
         <span>{skill || "Навык не указан"}</span>
         <span>{task.status}</span>
       </div>
-      <h2>{task.title}</h2>
+      {onOpenDetail ? (
+        <button className="task-card__title-button" type="button" onClick={() => onOpenDetail(task)}>
+          <h2>{task.title}</h2>
+        </button>
+      ) : (
+        <h2>{task.title}</h2>
+      )}
       <p>{task.description}</p>
       <ProgressBar percent={progress} />
       <div className="task-card__meta">
         <span>Сотрудник: {employee || "Не назначен"}</span>
         {manager && <span>Руководитель: {manager}</span>}
         <span>Срок: {dueDate}</span>
+      </div>
+      <div className="task-card__actions">
+        {showStatusAction && actionLabel && onStatusChange && (
+          <button
+            className="task-card__action"
+            disabled={isUpdating}
+            type="button"
+            onClick={() => onStatusChange(task)}
+          >
+            {isUpdating ? "Сохраняем..." : actionLabel}
+          </button>
+        )}
+        {onOpenDetail && (
+          <button
+            className="task-card__secondary"
+            type="button"
+            onClick={() => onOpenDetail(task)}
+          >
+            Подробнее
+          </button>
+        )}
       </div>
     </article>
   );

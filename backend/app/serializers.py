@@ -1,15 +1,20 @@
 from rest_framework import serializers
 
-from .models import Comment, Progress, Skill, Task, User
+from .models import User, Skill, Task, Progress, Comment
 
 
+# Для пользователя
 class UserReadSerializer(serializers.ModelSerializer):
+    """Для чтения: списки, профиль, вложения в Task/Comment."""
+
     class Meta:
         model = User
         fields = ["id", "username", "email", "role", "first_name", "last_name"]
 
 
 class UserWriteSerializer(serializers.ModelSerializer):
+    """Для создания/регистрации пользователя."""
+
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
@@ -22,12 +27,14 @@ class UserWriteSerializer(serializers.ModelSerializer):
         return User.objects.create_user(password=password, **validated_data)
 
 
+# Для навыка
 class SkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
         fields = ["id", "name", "description"]
 
 
+# Для задачи
 class TaskReadSerializer(serializers.ModelSerializer):
     skill = SkillSerializer(read_only=True)
     manager = UserReadSerializer(read_only=True)
@@ -59,7 +66,7 @@ class TaskCreateSerializer(serializers.ModelSerializer):
         if employee.role != User.Role.EMPLOYEE:
             raise serializers.ValidationError("Назначить задачу можно только сотруднику.")
         return employee
-
+        
     def create(self, validated_data):
         request = self.context["request"]
         validated_data["manager"] = request.user
@@ -72,6 +79,7 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
         fields = ["title", "description", "status", "due_date"]
 
 
+# Для прогресса
 class ProgressReadSerializer(serializers.ModelSerializer):
     task = serializers.StringRelatedField()
     employee = UserReadSerializer(read_only=True)
@@ -100,6 +108,7 @@ class ProgressCreateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+# Для комментария
 class CommentReadSerializer(serializers.ModelSerializer):
     author = UserReadSerializer(read_only=True)
     task = serializers.StringRelatedField()
