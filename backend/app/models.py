@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-
+# Модель пользователей
 class User(AbstractUser):
     class Role(models.TextChoices):
         MANAGER = "manager", "Manager"
@@ -20,15 +20,14 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
-
+# Модель навыков/компетенций
 class Skill(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-
     def __str__(self):
         return self.name
 
-
+# Модель задач
 class Task(models.Model):
     class Status(models.TextChoices):
         TODO = "todo", "To Do"
@@ -58,22 +57,20 @@ class Task(models.Model):
     def __str__(self):
         return self.title
 
-
+# Модель прогресса по задаче
 class Progress(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="progress_entries")
     employee = models.ForeignKey(User, on_delete=models.CASCADE, related_name="progress_updates")
-    percent = models.PositiveSmallIntegerField(default=0)
+    percent = models.PositiveSmallIntegerField(default=0)  # 0–100
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
     class Meta:
         verbose_name_plural = "Progress entries"
         ordering = ["-created_at"]
-
     def __str__(self):
-        return f"{self.task.title} - {self.percent}%"
+        return f"{self.task.title} — {self.percent}%"
 
-
+# Модель комментариев к задаче
 class Comment(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
