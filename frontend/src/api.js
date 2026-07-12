@@ -129,6 +129,11 @@ export async function getEmployees() {
   return response.data;
 }
 
+export async function createEmployee(employeeData) {
+  const response = await api.post("/employees/", employeeData);
+  return response.data;
+}
+
 export async function createTask(taskData) {
   const response = await api.post("/tasks/", taskData);
   return response.data;

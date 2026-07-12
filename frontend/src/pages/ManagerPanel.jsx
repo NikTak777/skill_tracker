@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import {
   attachProgressToTasks,
+  createEmployee,
   createSkill,
   createTask,
   getEmployees,
@@ -10,6 +11,7 @@ import {
   getTasks,
 } from "../api.js";
 import TaskCard from "../components/TaskCard.jsx";
+import CollapsibleSection from "../components/CollapsibleSection.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import { useSession } from "../context/SessionContext.jsx";
@@ -31,6 +33,11 @@ const INITIAL_FORM = {
 const INITIAL_SKILL_FORM = {
   name: "",
   description: "",
+};
+
+const INITIAL_EMPLOYEE_FORM = {
+  username: "",
+  password: "",
 };
 
 function getList(data) {
@@ -107,14 +114,22 @@ export default function ManagerPanel() {
   const [managerTasks, setManagerTasks] = useState([]);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [skillFormData, setSkillFormData] = useState(INITIAL_SKILL_FORM);
+  const [employeeFormData, setEmployeeFormData] = useState(INITIAL_EMPLOYEE_FORM);
   const [loadStatus, setLoadStatus] = useState("loading");
   const [formStatus, setFormStatus] = useState("");
   const [formError, setFormError] = useState("");
   const [skillFormStatus, setSkillFormStatus] = useState("");
   const [skillFormError, setSkillFormError] = useState("");
+  const [employeeFormStatus, setEmployeeFormStatus] = useState("");
+  const [employeeFormError, setEmployeeFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingSkill, setIsCreatingSkill] = useState(false);
+  const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showSkillForm, setShowSkillForm] = useState(false);
+  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
   async function loadManagerData() {
     setLoadStatus("loading");
@@ -175,6 +190,14 @@ export default function ManagerPanel() {
     }));
   }
 
+  function updateEmployeeField(event) {
+    const { name, value } = event.target;
+    setEmployeeFormData((currentData) => ({
+      ...currentData,
+      [name]: value,
+    }));
+  }
+
   async function handleSkillSubmit(event) {
     event.preventDefault();
     setSkillFormStatus("");
@@ -201,6 +224,32 @@ export default function ManagerPanel() {
     }
   }
 
+  async function handleEmployeeSubmit(event) {
+    event.preventDefault();
+    setEmployeeFormStatus("");
+    setEmployeeFormError("");
+    setIsCreatingEmployee(true);
+
+    try {
+      const createdEmployee = await createEmployee({
+        username: employeeFormData.username.trim(),
+        password: employeeFormData.password,
+      });
+
+      setEmployeeFormData(INITIAL_EMPLOYEE_FORM);
+      setEmployeeFormStatus("Сотрудник добавлен.");
+      setFormData((currentData) => ({
+        ...currentData,
+        employee: String(createdEmployee.id),
+      }));
+      await loadManagerData();
+    } catch (error) {
+      setEmployeeFormError(getApiErrorMessage(error, "Не удалось создать сотрудника."));
+    } finally {
+      setIsCreatingEmployee(false);
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setFormStatus("");
@@ -217,7 +266,7 @@ export default function ManagerPanel() {
       });
 
       setFormData(INITIAL_FORM);
-      setFormStatus("Задача создана. Список задач обновлен.");
+      setFormStatus("Задача создана.");
       await loadManagerData();
     } catch (error) {
       setFormError(getApiErrorMessage(error));
@@ -256,7 +305,6 @@ export default function ManagerPanel() {
   return (
     <>
       <section className="hero manager-hero">
-        <p className="label">Кабинет руководителя</p>
         <h1>Создание задач и контроль сотрудников</h1>
         <p>Создавайте задачи, назначайте сотрудников и отслеживайте прогресс команды.</p>
         {loadStatus === "error" && (
@@ -282,160 +330,213 @@ export default function ManagerPanel() {
       </section>
 
       <section className="manager-layout">
-        <div className="manager-forms">
-          <form className="manager-form" onSubmit={handleSubmit}>
-            <p className="label">Новая задача</p>
-            <h2>Поставить задачу</h2>
+        <div className="manager-actions">
+          <CollapsibleSection
+            buttonLabel="Поставить задачу"
+            isOpen={showTaskForm}
+            onToggle={() => setShowTaskForm((current) => !current)}
+          >
+            <form className="manager-form" onSubmit={handleSubmit}>
+              <h2>Поставить задачу</h2>
 
-            <label>
-              Название
-              <input
-                name="title"
-                type="text"
-                value={formData.title}
-                onChange={updateField}
-                required
-              />
-            </label>
+              <label>
+                Название
+                <input
+                  name="title"
+                  type="text"
+                  value={formData.title}
+                  onChange={updateField}
+                  required
+                />
+              </label>
 
-            <label>
-              Описание
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={updateField}
-              />
-            </label>
+              <label>
+                Описание
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={updateField}
+                />
+              </label>
 
-            <label>
-              Навык
-              <select name="skill" value={formData.skill} onChange={updateField} required>
-                <option value="">Выберите навык</option>
-                {skills.map((skill) => (
-                  <option key={skill.id} value={skill.id}>
-                    {skill.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label>
+                Навык
+                <select name="skill" value={formData.skill} onChange={updateField} required>
+                  <option value="">Выберите навык</option>
+                  {skills.map((skill) => (
+                    <option key={skill.id} value={skill.id}>
+                      {skill.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label>
-              Сотрудник
-              <select name="employee" value={formData.employee} onChange={updateField} required>
-                <option value="">Выберите сотрудника</option>
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {getEmployeeLabel(employee)}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label>
+                Сотрудник
+                <select name="employee" value={formData.employee} onChange={updateField} required>
+                  <option value="">Выберите сотрудника</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {getEmployeeLabel(employee)}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label>
-              Срок
-              <input
-                name="due_date"
-                type="date"
-                value={formData.due_date}
-                onChange={updateField}
-              />
-            </label>
+              <label>
+                Срок
+                <input
+                  name="due_date"
+                  type="date"
+                  value={formData.due_date}
+                  onChange={updateField}
+                />
+              </label>
 
-            {employees.length === 0 && (
-              <p className="form-message form-message--error">
-                Сотрудники не найдены. Добавьте сотрудников через администратора системы.
-              </p>
-            )}
+              {employees.length === 0 && (
+                <p className="form-message form-message--error">
+                  Сначала добавьте сотрудника.
+                </p>
+              )}
 
-            {formError && <p className="form-message form-message--error">{formError}</p>}
-            {formStatus && <p className="form-message">{formStatus}</p>}
+              {formError && <p className="form-message form-message--error">{formError}</p>}
+              {formStatus && <p className="form-message">{formStatus}</p>}
 
-            <button type="submit" disabled={isSubmitting || employees.length === 0}>
-              {isSubmitting ? "Создаем..." : "Создать задачу"}
-            </button>
-          </form>
+              <button type="submit" disabled={isSubmitting || employees.length === 0}>
+                {isSubmitting ? "Создаем..." : "Создать задачу"}
+              </button>
+            </form>
+          </CollapsibleSection>
 
-          <form className="manager-form manager-skill-form" onSubmit={handleSkillSubmit}>
-            <p className="label">Справочник</p>
-            <h2>Новый навык</h2>
+          <CollapsibleSection
+            buttonLabel="Добавить навык"
+            isOpen={showSkillForm}
+            onToggle={() => setShowSkillForm((current) => !current)}
+          >
+            <form className="manager-form" onSubmit={handleSkillSubmit}>
+              <h2>Новый навык</h2>
 
-            <label>
-              Название
-              <input
-                name="name"
-                type="text"
-                value={skillFormData.name}
-                onChange={updateSkillField}
-                required
-              />
-            </label>
+              <label>
+                Название
+                <input
+                  name="name"
+                  type="text"
+                  value={skillFormData.name}
+                  onChange={updateSkillField}
+                  required
+                />
+              </label>
 
-            <label>
-              Описание
-              <textarea
-                name="description"
-                value={skillFormData.description}
-                onChange={updateSkillField}
-              />
-            </label>
+              <label>
+                Описание
+                <textarea
+                  name="description"
+                  value={skillFormData.description}
+                  onChange={updateSkillField}
+                />
+              </label>
 
-            {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
-            {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
+              {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
+              {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
 
-            <button type="submit" disabled={isCreatingSkill}>
-              {isCreatingSkill ? "Сохраняем..." : "Добавить навык"}
-            </button>
-          </form>
+              <button type="submit" disabled={isCreatingSkill}>
+                {isCreatingSkill ? "Сохраняем..." : "Добавить навык"}
+              </button>
+            </form>
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            buttonLabel="Добавить сотрудника"
+            isOpen={showEmployeeForm}
+            onToggle={() => setShowEmployeeForm((current) => !current)}
+          >
+            <form className="manager-form" onSubmit={handleEmployeeSubmit}>
+              <h2>Новый сотрудник</h2>
+
+              <label>
+                Логин
+                <input
+                  name="username"
+                  type="text"
+                  placeholder="Введите логин"
+                  value={employeeFormData.username}
+                  onChange={updateEmployeeField}
+                  required
+                />
+              </label>
+
+              <label>
+                Пароль
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Минимум 8 символов"
+                  value={employeeFormData.password}
+                  onChange={updateEmployeeField}
+                  required
+                  minLength={8}
+                />
+              </label>
+
+              {employeeFormError && <p className="form-message form-message--error">{employeeFormError}</p>}
+              {employeeFormStatus && <p className="form-message">{employeeFormStatus}</p>}
+
+              <button type="submit" disabled={isCreatingEmployee}>
+                {isCreatingEmployee ? "Сохраняем..." : "Добавить сотрудника"}
+              </button>
+            </form>
+          </CollapsibleSection>
         </div>
 
-        <section className="manager-board" aria-label="Профиль и сотрудники">
-          <div className="section-heading">
-            <p className="label">Профиль</p>
-            <h2>{managerProfile.username || "Руководитель"}</h2>
-          </div>
-
-          <dl className="profile-list">
-            <div>
-              <dt>Роль</dt>
-              <dd>{ROLE_LABELS[managerProfile.role] || managerProfile.role || "Не указана"}</dd>
-            </div>
-            <div>
-              <dt>Задач команды</dt>
-              <dd>{managerTasks.length}</dd>
-            </div>
-            <div>
-              <dt>Навыков в справочнике</dt>
-              <dd>{skills.length}</dd>
-            </div>
-          </dl>
-
-          <div className="section-heading manager-team-heading">
-            <p className="label">Команда</p>
-            <h2>Прогресс сотрудников</h2>
-          </div>
-          <div className="employee-list">
-            {teamMembers.length === 0 && <p className="empty-state">Сотрудников с задачами пока нет.</p>}
-            {teamMembers.map((employee) => (
-              <article className="employee-row" key={employee.name}>
+        <section className="manager-board" aria-label="Команда">
+          <CollapsibleSection
+            buttonLabel="Профиль"
+            expand="right"
+            isOpen={showProfile}
+            onToggle={() => setShowProfile((current) => !current)}
+          >
+            <div className="manager-profile">
+              <h2>{managerProfile.username || "Руководитель"}</h2>
+              <dl className="profile-list">
                 <div>
-                  <h3>{employee.name}</h3>
-                  <p>{employee.taskCount} задач в работе</p>
+                  <dt>Роль</dt>
+                  <dd>{ROLE_LABELS[managerProfile.role] || managerProfile.role || "Не указана"}</dd>
                 </div>
-                <div className="employee-row__stats">
-                  <span>{employee.taskCount} задач</span>
-                  <span>{employee.progress}%</span>
+                <div>
+                  <dt>Задач команды</dt>
+                  <dd>{managerTasks.length}</dd>
                 </div>
-              </article>
-            ))}
+                <div>
+                  <dt>Навыков в справочнике</dt>
+                  <dd>{skills.length}</dd>
+                </div>
+              </dl>
+            </div>
+          </CollapsibleSection>
+
+          <div className="manager-team">
+            <h2>Прогресс сотрудников</h2>
+            <div className="employee-list">
+              {teamMembers.length === 0 && <p className="empty-state">Сотрудников с задачами пока нет.</p>}
+              {teamMembers.map((employee) => (
+                <article className="employee-row" key={employee.name}>
+                  <div>
+                    <h3>{employee.name}</h3>
+                    <p>{employee.taskCount} задач в работе</p>
+                  </div>
+                  <div className="employee-row__stats">
+                    <span>{employee.taskCount} задач</span>
+                    <span>{employee.progress}%</span>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
       </section>
 
       <section className="manager-tasks">
-        <div className="section-heading">
-          <p className="label">Контроль</p>
-          <h2>Все задачи руководителя</h2>
-        </div>
+        <h2>Все задачи руководителя</h2>
         <section className="task-grid" aria-label="Список задач руководителя">
           {managerTasks.length === 0 && <p className="empty-state">Задач пока нет.</p>}
           {managerTasks.map((task) => (

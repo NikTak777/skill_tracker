@@ -24,6 +24,14 @@ class UserRegisterSchema(BaseModel):
     last_name: str = ""
 
 
+class EmployeeCreateSchema(BaseModel):
+    username: str = Field(min_length=3, max_length=150)
+    email: EmailStr | None = None
+    password: str = Field(min_length=8)
+    first_name: str = ""
+    last_name: str = ""
+
+
 class TaskCreateSchema(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = ""

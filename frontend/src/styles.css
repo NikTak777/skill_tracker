@@ -190,10 +190,26 @@ body {
 
 h1 {
   color: var(--color-text);
-  font-size: clamp(36px, 7vw, 72px);
+  font-size: clamp(25px, 5vw, 50px);
   line-height: 0.95;
   margin: 0;
   max-width: 780px;
+}
+
+h2 {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+h3 {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.employee-content > h2 {
+  font-size: 20px;
+  line-height: 1.1;
+  margin: 0 0 20px;
 }
 
 .hero p:last-child {
@@ -225,7 +241,7 @@ h1 {
 }
 
 .role-panel h2 {
-  font-size: 28px;
+  font-size: 20px;
   line-height: 1.1;
   margin: 0;
 }
@@ -251,6 +267,23 @@ h1 {
   font-weight: 700;
   padding: 14px 18px;
   transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.manager-actions .collapsible-toggle,
+.manager-actions .manager-form button {
+  font-size: 20px;
+}
+
+.employee-sidebar .collapsible-toggle,
+.manager-board > .collapsible-section .collapsible-toggle {
+  font-size: 16px;
+  padding: 10px 16px;
+  width: auto;
+}
+
+.manager-board > .collapsible-section {
+  width: fit-content;
+  max-width: 100%;
 }
 
 .role-panel button:hover,
@@ -306,8 +339,26 @@ h1 {
 .employee-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 1fr;
   margin-top: 24px;
+}
+
+.employee-sidebar {
+  display: grid;
+  gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.employee-sidebar .collapsible-section {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.employee-sidebar .collapsible-toggle {
+  font-size: 16px;
+  padding: 10px 16px;
+  width: auto;
 }
 
 .auth-layout {
@@ -326,6 +377,73 @@ h1 {
 .manager-forms {
   display: grid;
   gap: 24px;
+}
+
+.manager-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.collapsible-section {
+  display: grid;
+  gap: 12px;
+}
+
+.collapsible-section--right {
+  align-items: stretch;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  max-width: 100%;
+  width: fit-content;
+}
+
+.collapsible-section--right .collapsible-toggle {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.collapsible-section--right .collapsible-content {
+  flex: 0 1 320px;
+  max-width: 360px;
+  min-width: 240px;
+}
+
+.collapsible-toggle {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 700;
+  padding: 14px 18px;
+  text-align: left;
+  width: 100%;
+}
+
+.collapsible-toggle:hover,
+.collapsible-toggle.is-open {
+  background: var(--color-primary-soft);
+  border-color: #c7d2fe;
+}
+
+.collapsible-content {
+  display: grid;
+  gap: 12px;
+}
+
+.manager-profile h2,
+.manager-team h2,
+.manager-tasks > h2 {
+  font-size: 20px;
+  line-height: 1.1;
+  margin: 0 0 20px;
+}
+
+.manager-team {
+  margin-top: 16px;
 }
 
 .manager-skill-form {
@@ -359,7 +477,7 @@ h1 {
 .auth-form h2,
 .manager-form h2,
 .section-heading h2 {
-  font-size: 28px;
+  font-size: 20px;
   line-height: 1.1;
   margin: 0;
 }
@@ -531,7 +649,7 @@ h1 {
 }
 
 .employee-row h3 {
-  font-size: 20px;
+  font-size: 14px;
   margin: 0 0 6px;
 }
 
@@ -557,6 +675,11 @@ h1 {
 
 .manager-tasks {
   margin-top: 16px;
+}
+
+.manager-tasks > h2 {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 20px;
 }
 
 .manager-tasks .task-grid {
@@ -603,7 +726,7 @@ h1 {
 .task-card__title-button h2,
 .task-card h2 {
   color: var(--color-text);
-  font-size: 26px;
+  font-size: 18px;
   line-height: 1.1;
   margin: 28px 0 12px;
 }

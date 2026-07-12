@@ -4,6 +4,7 @@ import { getMe, getTasksWithProgress, updateTask } from "../api.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
+import CollapsibleSection from "../components/CollapsibleSection.jsx";
 import { useSession } from "../context/SessionContext.jsx";
 
 
@@ -41,6 +42,7 @@ export default function EmployeeTasks() {
   const [statusError, setStatusError] = useState("");
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   async function loadEmployeeData() {
     setLoadStatus("loading");
@@ -100,7 +102,6 @@ export default function EmployeeTasks() {
   return (
     <>
       <section className="hero employee-hero">
-        <p className="label">Кабинет сотрудника</p>
         <h1>Мои задачи развития</h1>
         <p>Ваши задачи, прогресс и комментарии.</p>
         {loadStatus === "error" && (
@@ -112,30 +113,35 @@ export default function EmployeeTasks() {
       </section>
 
       <section className="employee-layout">
-        <aside className="employee-panel">
-          <p className="label">Профиль</p>
-          <h2>{employeeProfile.username || "Сотрудник"}</h2>
-          <dl>
-            <div>
-              <dt>Роль</dt>
-              <dd>{ROLE_LABELS[employeeProfile.role] || employeeProfile.role || "Не указана"}</dd>
+        <aside className="employee-sidebar">
+          <CollapsibleSection
+            buttonLabel="Профиль"
+            expand="right"
+            isOpen={showProfile}
+            onToggle={() => setShowProfile((current) => !current)}
+          >
+            <div className="employee-panel">
+              <h2>{employeeProfile.username || "Сотрудник"}</h2>
+              <dl>
+                <div>
+                  <dt>Роль</dt>
+                  <dd>{ROLE_LABELS[employeeProfile.role] || employeeProfile.role || "Не указана"}</dd>
+                </div>
+                <div>
+                  <dt>Активных задач</dt>
+                  <dd>{employeeTasks.length}</dd>
+                </div>
+                <div>
+                  <dt>Средний прогресс</dt>
+                  <dd>{completedProgress}%</dd>
+                </div>
+              </dl>
             </div>
-            <div>
-              <dt>Активных задач</dt>
-              <dd>{employeeTasks.length}</dd>
-            </div>
-            <div>
-              <dt>Средний прогресс</dt>
-              <dd>{completedProgress}%</dd>
-            </div>
-          </dl>
+          </CollapsibleSection>
         </aside>
 
         <section className="employee-content" aria-label="Задачи сотрудника">
-          <div className="section-heading">
-            <p className="label">План на неделю</p>
-            <h2>Назначенные задачи</h2>
-          </div>
+          <h2>Назначенные задачи</h2>
 
           {employeeTasks.length === 0 && <p className="empty-state">Задач пока нет.</p>}
 
