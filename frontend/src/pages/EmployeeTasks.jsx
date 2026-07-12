@@ -34,7 +34,6 @@ export default function EmployeeTasks() {
   const { session } = useSession();
   const [employeeProfile, setEmployeeProfile] = useState({
     username: session.username,
-    email: "",
     role: session.role,
   });
   const [employeeTasks, setEmployeeTasks] = useState([]);
@@ -52,7 +51,6 @@ export default function EmployeeTasks() {
 
       setEmployeeProfile({
         username: profile.username || session.username,
-        email: profile.email || "",
         role: String(profile.role || session.role || "").toLowerCase(),
       });
       setEmployeeTasks(taskList);
@@ -104,13 +102,12 @@ export default function EmployeeTasks() {
       <section className="hero employee-hero">
         <p className="label">Кабинет сотрудника</p>
         <h1>Мои задачи развития</h1>
-        <p>
-          Страница загружает задачи сотрудника, прогресс, комментарии и позволяет менять статус.
-        </p>
-        <p className="form-message">
-          {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/progress/ и /api/comments/."}
-          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
-        </p>
+        <p>Ваши задачи, прогресс и комментарии.</p>
+        {loadStatus === "error" && (
+          <p className="form-message form-message--error">
+            Не удалось загрузить данные. Попробуйте обновить страницу.
+          </p>
+        )}
         {statusError && <p className="form-message form-message--error">{statusError}</p>}
       </section>
 
@@ -122,10 +119,6 @@ export default function EmployeeTasks() {
             <div>
               <dt>Роль</dt>
               <dd>{ROLE_LABELS[employeeProfile.role] || employeeProfile.role || "Не указана"}</dd>
-            </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{employeeProfile.email || "Не указан"}</dd>
             </div>
             <div>
               <dt>Активных задач</dt>

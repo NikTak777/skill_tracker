@@ -10,7 +10,7 @@ const ROLE_LABELS = {
 };
 
 const navItems = [
-  { path: "/dashboard", label: "Dashboard", authOnly: true },
+  { path: "/dashboard", label: "Панель работника", authOnly: true },
   { path: "/employee", label: "Сотрудник", authOnly: true, roles: ["employee"] },
   { path: "/manager", label: "Руководитель", authOnly: true, roles: ["manager"] },
 ];

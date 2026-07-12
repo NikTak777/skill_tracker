@@ -67,19 +67,14 @@ function getPersonName(person) {
 }
 
 function getEmployeeLabel(employee) {
-  const name = getPersonName(employee) || employee.username;
-  if (employee.email) {
-    return `${name} (${employee.email})`;
-  }
-
-  return name;
+  return getPersonName(employee) || employee.username;
 }
 
-function getApiErrorMessage(error, fallback = "Запрос завершился ошибкой. Проверьте данные формы.") {
+function getApiErrorMessage(error, fallback = "Не удалось выполнить запрос.") {
   const data = error.response?.data;
 
   if (!data) {
-    return "Backend недоступен. Проверьте, что сервер запущен.";
+    return fallback;
   }
 
   if (typeof data === "string") {
@@ -105,7 +100,6 @@ export default function ManagerPanel() {
   const { session } = useSession();
   const [managerProfile, setManagerProfile] = useState({
     username: session.username,
-    email: "",
     role: session.role,
   });
   const [skills, setSkills] = useState([]);
@@ -137,7 +131,6 @@ export default function ManagerPanel() {
         const profile = profileResult.value;
         setManagerProfile({
           username: profile.username || session.username,
-          email: profile.email || "",
           role: String(profile.role || session.role || "").toLowerCase(),
         });
       }
@@ -265,14 +258,12 @@ export default function ManagerPanel() {
       <section className="hero manager-hero">
         <p className="label">Кабинет руководителя</p>
         <h1>Создание задач и контроль сотрудников</h1>
-        <p>
-          Руководитель создаёт задачи, выбирает сотрудника из списка, добавляет навыки
-          и контролирует задачи команды через backend API.
-        </p>
-        <p className="form-message">
-          {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/skills/ и /api/employees/."}
-          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
-        </p>
+        <p>Создавайте задачи, назначайте сотрудников и отслеживайте прогресс команды.</p>
+        {loadStatus === "error" && (
+          <p className="form-message form-message--error">
+            Не удалось загрузить данные. Попробуйте обновить страницу.
+          </p>
+        )}
       </section>
 
       <section className="summary" aria-label="Сводка руководителя">
@@ -352,7 +343,7 @@ export default function ManagerPanel() {
 
             {employees.length === 0 && (
               <p className="form-message form-message--error">
-                Сотрудники не найдены. Зарегистрируйте пользователя с ролью employee.
+                Сотрудники не найдены. Добавьте сотрудников через администратора системы.
               </p>
             )}
 
@@ -409,10 +400,6 @@ export default function ManagerPanel() {
               <dd>{ROLE_LABELS[managerProfile.role] || managerProfile.role || "Не указана"}</dd>
             </div>
             <div>
-              <dt>Email</dt>
-              <dd>{managerProfile.email || "Не указан"}</dd>
-            </div>
-            <div>
               <dt>Задач команды</dt>
               <dd>{managerTasks.length}</dd>
             </div>
@@ -432,7 +419,7 @@ export default function ManagerPanel() {
               <article className="employee-row" key={employee.name}>
                 <div>
                   <h3>{employee.name}</h3>
-                  <p>Данные рассчитаны по задачам из backend</p>
+                  <p>{employee.taskCount} задач в работе</p>
                 </div>
                 <div className="employee-row__stats">
                   <span>{employee.taskCount} задач</span>

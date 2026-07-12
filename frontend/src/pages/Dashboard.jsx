@@ -76,13 +76,10 @@ export default function Dashboard() {
       <section className="hero">
         <p className="label">SkillTracker</p>
         <h1>Витрина задач развития</h1>
-        <p>Dashboard загружает задачи из backend API для текущего пользователя.</p>
-        {loadStatus === "success" && (
-          <p className="form-message">Задачи загружены из /api/tasks/ и /api/progress/.</p>
-        )}
+        <p>Обзор ваших задач и прогресса развития.</p>
         {loadStatus === "error" && (
           <p className="form-message form-message--error">
-            Не удалось загрузить задачи. Проверьте backend и авторизацию.
+            Не удалось загрузить задачи. Попробуйте обновить страницу.
           </p>
         )}
       </section>

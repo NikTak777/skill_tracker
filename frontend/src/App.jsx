@@ -8,7 +8,6 @@ import Dashboard from "./pages/Dashboard.jsx";
 import EmployeeTasks from "./pages/EmployeeTasks.jsx";
 import Login from "./pages/Login.jsx";
 import ManagerPanel from "./pages/ManagerPanel.jsx";
-import Register from "./pages/Register.jsx";
 import "./styles.css";
 
 
@@ -25,14 +24,7 @@ export default function App() {
               </GuestRoute>
             )}
           />
-          <Route
-            path="/register"
-            element={(
-              <GuestRoute>
-                <Register />
-              </GuestRoute>
-            )}
-          />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
         </Route>
 
         <Route element={<AppLayout />}>
