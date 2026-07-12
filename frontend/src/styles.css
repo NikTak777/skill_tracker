@@ -513,6 +513,37 @@ h1 {
   margin-top: 24px;
 }
 
+.manager-form button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.profile-list {
+  display: grid;
+  gap: 18px;
+  margin: 24px 0 0;
+}
+
+.profile-list div {
+  border-top: 1px solid #111;
+  padding-top: 16px;
+}
+
+.profile-list dt {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.profile-list dd {
+  font-size: 22px;
+  margin: 8px 0 0;
+}
+
+.manager-team-heading {
+  margin-top: 24px;
+}
+
 .employee-list {
   display: grid;
   gap: 12px;
