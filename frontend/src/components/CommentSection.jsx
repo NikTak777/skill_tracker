@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { createComment, getComments } from "../api.js";
+import LoadingSpinner from "./LoadingSpinner.jsx";
 
 
 function getList(data) {
@@ -118,7 +119,7 @@ export default function CommentSection({ onChanged, taskId }) {
         <h3>Комментарии</h3>
       </div>
 
-      {loadStatus === "loading" && <p className="form-message">Загружаем комментарии...</p>}
+      {loadStatus === "loading" && <LoadingSpinner label="Загружаем комментарии..." />}
       {loadStatus === "error" && (
         <p className="form-message form-message--error">Не удалось загрузить комментарии.</p>
       )}
