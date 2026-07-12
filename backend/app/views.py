@@ -12,6 +12,7 @@ from .pydantic_schemas import (
     validate_request,
     ProgressCreateSchema,
     CommentCreateSchema,
+    SkillCreateSchema,
 )
 from .serializers import (
     TaskCreateSerializer,
@@ -203,6 +204,7 @@ class CommentViewSet(
 
 
 class SkillViewSet(
+    mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
@@ -210,3 +212,11 @@ class SkillViewSet(
     queryset = Skill.objects.all().order_by("name")
     serializer_class = SkillSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class EmployeeListView(generics.ListAPIView):
+    serializer_class = UserReadSerializer
+    permission_classes = [permissions.IsAuthenticated, IsManager]
+
+    def get_queryset(self):
+        return User.objects.filter(role=User.Role.EMPLOYEE).order_by("username")

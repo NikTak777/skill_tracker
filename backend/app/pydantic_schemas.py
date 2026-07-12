@@ -48,3 +48,7 @@ class ProgressCreateSchema(BaseModel):
 class CommentCreateSchema(BaseModel):
     task: int = Field(gt=0)
     text: str = Field(min_length=1)
+
+class SkillCreateSchema(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str = ""
