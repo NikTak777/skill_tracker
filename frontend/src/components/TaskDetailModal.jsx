@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { createProgress, getProgress } from "../api.js";
 import CommentSection from "./CommentSection.jsx";
+import LoadingSpinner from "./LoadingSpinner.jsx";
 import ProgressBar from "./ProgressBar.jsx";
 
 
@@ -208,7 +209,7 @@ export default function TaskDetailModal({
           </div>
           <ProgressBar percent={latestProgress} />
 
-          {loadStatus === "loading" && <p className="form-message">Загружаем историю прогресса...</p>}
+          {loadStatus === "loading" && <LoadingSpinner label="Загружаем историю прогресса..." />}
           {loadStatus === "error" && (
             <p className="form-message form-message--error">Не удалось загрузить историю прогресса.</p>
           )}

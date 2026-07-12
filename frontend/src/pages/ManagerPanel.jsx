@@ -11,6 +11,8 @@ import {
 } from "../api.js";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import { useSession } from "../context/SessionContext.jsx";
 
 
 const ROLE_LABELS = {
@@ -99,7 +101,8 @@ function getApiErrorMessage(error, fallback = "Запрос завершился
   return fieldErrors || fallback;
 }
 
-export default function ManagerPanel({ session }) {
+export default function ManagerPanel() {
+  const { session } = useSession();
   const [managerProfile, setManagerProfile] = useState({
     username: session.username,
     email: "",
@@ -253,6 +256,10 @@ export default function ManagerPanel({ session }) {
     : Math.round(managerTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / managerTasks.length);
   const tasksInProgress = managerTasks.filter((task) => task.status === "in_progress").length;
 
+  if (loadStatus === "loading") {
+    return <LoadingSpinner label="Загружаем данные руководителя..." />;
+  }
+
   return (
     <>
       <section className="hero manager-hero">
@@ -263,7 +270,6 @@ export default function ManagerPanel({ session }) {
           и контролирует задачи команды через backend API.
         </p>
         <p className="form-message">
-          {loadStatus === "loading" && "Загружаем данные руководителя..."}
           {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/skills/ и /api/employees/."}
           {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
         </p>
