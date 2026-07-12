@@ -11,8 +11,6 @@ const ROLE_LABELS = {
 
 const navItems = [
   { path: "/dashboard", label: "Панель работника", authOnly: true },
-  { path: "/employee", label: "Сотрудник", authOnly: true, roles: ["employee"] },
-  { path: "/manager", label: "Руководитель", authOnly: true, roles: ["manager"] },
 ];
 
 export default function Navbar({ activePath, onNavigate, session, onLogout }) {
@@ -21,10 +19,6 @@ export default function Navbar({ activePath, onNavigate, session, onLogout }) {
   const visibleNavItems = navItems.filter((item) => {
     if (item.authOnly && !session.isAuthenticated) {
       return false;
-    }
-
-    if (item.roles) {
-      return session.isAuthenticated && item.roles.includes(session.role);
     }
 
     return true;
