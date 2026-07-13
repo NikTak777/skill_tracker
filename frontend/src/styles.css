@@ -294,26 +294,10 @@ body {
 
 h1 {
   color: var(--color-text);
-  font-size: clamp(25px, 5vw, 50px);
+  font-size: clamp(36px, 7vw, 72px);
   line-height: 0.95;
   margin: 0;
   max-width: 780px;
-}
-
-h2 {
-  font-size: 20px;
-  line-height: 1.1;
-}
-
-h3 {
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.employee-content > h2 {
-  font-size: 20px;
-  line-height: 1.1;
-  margin: 0 0 20px;
 }
 
 .hero p:last-child {
@@ -389,7 +373,7 @@ h3 {
 }
 
 .role-panel h2 {
-  font-size: 20px;
+  font-size: 28px;
   line-height: 1.1;
   margin: 0;
 }
@@ -574,7 +558,7 @@ h3 {
 .auth-form h2,
 .manager-form h2,
 .section-heading h2 {
-  font-size: 20px;
+  font-size: 28px;
   line-height: 1.1;
   margin: 0;
 }
@@ -795,7 +779,7 @@ h3 {
 }
 
 .employee-row h3 {
-  font-size: 14px;
+  font-size: 20px;
   margin: 0 0 6px;
 }
 
@@ -821,11 +805,6 @@ h3 {
 
 .manager-tasks {
   margin-top: 16px;
-}
-
-.manager-tasks > h2 {
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 20px;
 }
 
 .manager-tasks .task-grid {
@@ -872,7 +851,7 @@ h3 {
 .task-card__title-button h2,
 .task-card h2 {
   color: var(--color-text);
-  font-size: 18px;
+  font-size: 26px;
   line-height: 1.1;
   margin: 28px 0 12px;
 }
@@ -1171,13 +1150,7 @@ h3 {
 }
 
 .auth-page {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin: 0 auto;
   max-width: 920px;
-  min-height: 100vh;
-  padding: 24px;
 }
 
 .auth-header {

@@ -70,7 +70,7 @@ function getApiErrorMessage(error) {
   const data = error.response?.data;
 
   if (!data) {
-    return "Не удалось сохранить прогресс.";
+    return "Backend недоступен. Проверьте, что сервер запущен.";
   }
 
   if (typeof data === "string") {

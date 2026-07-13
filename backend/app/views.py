@@ -2,9 +2,13 @@ from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Task, User, Progress, Comment, Skill
 from .permissions import IsManager, IsTaskManager, IsTaskParticipant, IsEmployee
+from .filters import TaskFilter
+from .pagination import DoneTaskPagination
+
 from .pydantic_schemas import (
     TaskCreateSchema,
     TaskUpdateSchema,
@@ -14,6 +18,7 @@ from .pydantic_schemas import (
     CommentCreateSchema,
     SkillCreateSchema,
 )
+
 from .serializers import (
     TaskCreateSerializer,
     TaskReadSerializer,
@@ -55,6 +60,9 @@ class MeView(APIView):
 
 class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TaskFilter
+    pagination_class = DoneTaskPagination
 
     def get_permissions(self):
         if self.action == "create":
@@ -74,6 +82,11 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Task.objects.filter(employee=user).select_related(
             "skill", "manager", "employee"
         )
+
+    def paginate_queryset(self, queryset):
+        if self.request.query_params.get("status") != Task.Status.DONE:
+            return None
+        return super().paginate_queryset(queryset)
 
     def get_serializer_class(self):
         if self.action == "create":
