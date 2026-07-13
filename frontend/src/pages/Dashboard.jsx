@@ -12,17 +12,11 @@ import {
   getTasksWithProgress,
   updateTask,
 } from "../api.js";
-import CollapsibleSection from "../components/CollapsibleSection.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
 import { useSession } from "../context/SessionContext.jsx";
 
-
-const ROLE_LABELS = {
-  manager: "Руководитель",
-  employee: "Сотрудник",
-};
 
 const STATUS_NEXT = {
   todo: "in_progress",
@@ -142,10 +136,6 @@ export default function Dashboard() {
   const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [showSkillForm, setShowSkillForm] = useState(false);
-  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
 
   async function loadDashboardData() {
     setLoadStatus("loading");
@@ -357,235 +347,25 @@ export default function Dashboard() {
     return <LoadingSpinner label="Загружаем витрину..." />;
   }
 
-  return (
-    <>
-      <section className={`hero ${isManager ? "manager-hero" : "employee-hero"}`}>
-        <h1>Витрина задач развития</h1>
-        <p>
-          {isManager
-            ? "Создавайте задачи, назначайте сотрудников и отслеживайте прогресс команды."
-            : "Ваши задачи, прогресс и комментарии."}
+  const heroSection = (
+    <section className={`hero ${isManager ? "manager-hero" : "employee-hero"}`}>
+      <h1>Витрина задач развития</h1>
+      <p>
+        {isManager
+          ? "Создавайте задачи, назначайте сотрудников и отслеживайте прогресс команды."
+          : "Ваши задачи, прогресс и комментарии."}
+      </p>
+      {loadStatus === "error" && (
+        <p className="form-message form-message--error">
+          Не удалось загрузить данные. Попробуйте обновить страницу.
         </p>
-        {loadStatus === "error" && (
-          <p className="form-message form-message--error">
-            Не удалось загрузить данные. Попробуйте обновить страницу.
-          </p>
-        )}
-        {statusError && <p className="form-message form-message--error">{statusError}</p>}
-      </section>
+      )}
+      {statusError && <p className="form-message form-message--error">{statusError}</p>}
+    </section>
+  );
 
-      <section className="summary" aria-label="Сводка">
-        {isManager ? (
-          <>
-            <article>
-              <span>Сотрудников</span>
-              <strong>{employees.length || teamMembers.length}</strong>
-            </article>
-            <article>
-              <span>Средний прогресс</span>
-              <strong>{averageProgress}%</strong>
-            </article>
-            <article>
-              <span>В работе</span>
-              <strong>{tasksInProgress}</strong>
-            </article>
-          </>
-        ) : (
-          <>
-            <article>
-              <span>Всего задач</span>
-              <strong>{tasks.length}</strong>
-            </article>
-            <article>
-              <span>Средний прогресс</span>
-              <strong>{averageProgress}%</strong>
-            </article>
-            <article>
-              <span>Навыков в работе</span>
-              <strong>{skillsCount}</strong>
-            </article>
-          </>
-        )}
-      </section>
-
-      <section className="dashboard-toolbar">
-        <div className="dashboard-toolbar__actions">
-          {isManager && (
-            <div className="manager-actions">
-            <CollapsibleSection
-              buttonLabel="Поставить задачу"
-              isOpen={showTaskForm}
-              onToggle={() => setShowTaskForm((current) => !current)}
-            >
-              <form className="manager-form" onSubmit={handleTaskSubmit}>
-                <h2>Поставить задачу</h2>
-
-                <label>
-                  Название
-                  <input name="title" type="text" value={formData.title} onChange={updateField} required />
-                </label>
-
-                <label>
-                  Описание
-                  <textarea name="description" value={formData.description} onChange={updateField} />
-                </label>
-
-                <label>
-                  Навык
-                  <select name="skill" value={formData.skill} onChange={updateField} required>
-                    <option value="">Выберите навык</option>
-                    {skills.map((skill) => (
-                      <option key={skill.id} value={skill.id}>
-                        {skill.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Сотрудник
-                  <select name="employee" value={formData.employee} onChange={updateField} required>
-                    <option value="">Выберите сотрудника</option>
-                    {employees.map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {getEmployeeLabel(employee)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Срок
-                  <input name="due_date" type="date" value={formData.due_date} onChange={updateField} />
-                </label>
-
-                {employees.length === 0 && (
-                  <p className="form-message form-message--error">Сначала добавьте сотрудника.</p>
-                )}
-
-                {formError && <p className="form-message form-message--error">{formError}</p>}
-                {formStatus && <p className="form-message">{formStatus}</p>}
-
-                <button type="submit" disabled={isSubmitting || employees.length === 0}>
-                  {isSubmitting ? "Создаем..." : "Создать задачу"}
-                </button>
-              </form>
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              buttonLabel="Добавить навык"
-              isOpen={showSkillForm}
-              onToggle={() => setShowSkillForm((current) => !current)}
-            >
-              <form className="manager-form" onSubmit={handleSkillSubmit}>
-                <h2>Новый навык</h2>
-
-                <label>
-                  Название
-                  <input name="name" type="text" value={skillFormData.name} onChange={updateSkillField} required />
-                </label>
-
-                <label>
-                  Описание
-                  <textarea name="description" value={skillFormData.description} onChange={updateSkillField} />
-                </label>
-
-                {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
-                {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
-
-                <button type="submit" disabled={isCreatingSkill}>
-                  {isCreatingSkill ? "Сохраняем..." : "Добавить навык"}
-                </button>
-              </form>
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              buttonLabel="Добавить сотрудника"
-              isOpen={showEmployeeForm}
-              onToggle={() => setShowEmployeeForm((current) => !current)}
-            >
-              <form className="manager-form" onSubmit={handleEmployeeSubmit}>
-                <h2>Новый сотрудник</h2>
-
-                <label>
-                  Логин
-                  <input
-                    name="username"
-                    type="text"
-                    placeholder="Введите логин"
-                    value={employeeFormData.username}
-                    onChange={updateEmployeeField}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Пароль
-                  <input
-                    name="password"
-                    type="password"
-                    placeholder="Минимум 8 символов"
-                    value={employeeFormData.password}
-                    onChange={updateEmployeeField}
-                    required
-                    minLength={8}
-                  />
-                </label>
-
-                {employeeFormError && <p className="form-message form-message--error">{employeeFormError}</p>}
-                {employeeFormStatus && <p className="form-message">{employeeFormStatus}</p>}
-
-                <button type="submit" disabled={isCreatingEmployee}>
-                  {isCreatingEmployee ? "Сохраняем..." : "Добавить сотрудника"}
-                </button>
-              </form>
-            </CollapsibleSection>
-          </div>
-          )}
-
-          <div className="dashboard-toolbar__profile">
-            <CollapsibleSection
-              buttonLabel="Профиль"
-              isOpen={showProfile}
-              onToggle={() => setShowProfile((current) => !current)}
-            >
-              <div className={isManager ? "manager-profile employee-panel" : "employee-panel"}>
-                <h2>{profile.username || (isManager ? "Руководитель" : "Сотрудник")}</h2>
-                <dl className={isManager ? "profile-list" : undefined}>
-                  <div>
-                    <dt>Роль</dt>
-                    <dd>{ROLE_LABELS[profile.role] || profile.role || "Не указана"}</dd>
-                  </div>
-                  {isManager ? (
-                    <>
-                      <div>
-                        <dt>Задач команды</dt>
-                        <dd>{tasks.length}</dd>
-                      </div>
-                      <div>
-                        <dt>Навыков в справочнике</dt>
-                        <dd>{skills.length}</dd>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <dt>Активных задач</dt>
-                        <dd>{tasks.length}</dd>
-                      </div>
-                      <div>
-                        <dt>Средний прогресс</dt>
-                        <dd>{averageProgress}%</dd>
-                      </div>
-                    </>
-                  )}
-                </dl>
-              </div>
-            </CollapsibleSection>
-          </div>
-        </div>
-      </section>
-
+  const mainContent = (
+    <div className="dashboard-main">
       {isManager && (
         <section className="manager-team">
           <h2>Прогресс сотрудников</h2>
@@ -624,6 +404,176 @@ export default function Dashboard() {
           ))}
         </section>
       </section>
+    </div>
+  );
+
+  const managerSidebar = (
+    <aside className="dashboard-sidebar" aria-label="Панель управления">
+      <form className="manager-form" onSubmit={handleTaskSubmit}>
+        <h2>Поставить задачу</h2>
+
+        <label>
+          Название
+          <input name="title" type="text" value={formData.title} onChange={updateField} required />
+        </label>
+
+        <label>
+          Описание
+          <textarea name="description" value={formData.description} onChange={updateField} />
+        </label>
+
+        <label>
+          Навык
+          <select name="skill" value={formData.skill} onChange={updateField} required>
+            <option value="">Выберите навык</option>
+            {skills.map((skill) => (
+              <option key={skill.id} value={skill.id}>
+                {skill.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Сотрудник
+          <select name="employee" value={formData.employee} onChange={updateField} required>
+            <option value="">Выберите сотрудника</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {getEmployeeLabel(employee)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Срок
+          <input name="due_date" type="date" value={formData.due_date} onChange={updateField} />
+        </label>
+
+        {employees.length === 0 && (
+          <p className="form-message form-message--error">Сначала добавьте сотрудника.</p>
+        )}
+
+        {formError && <p className="form-message form-message--error">{formError}</p>}
+        {formStatus && <p className="form-message">{formStatus}</p>}
+
+        <button type="submit" disabled={isSubmitting || employees.length === 0}>
+          {isSubmitting ? "Создаем..." : "Создать задачу"}
+        </button>
+      </form>
+
+      <form className="manager-form" onSubmit={handleSkillSubmit}>
+        <h2>Новый навык</h2>
+
+        <label>
+          Название
+          <input name="name" type="text" value={skillFormData.name} onChange={updateSkillField} required />
+        </label>
+
+        <label>
+          Описание
+          <textarea name="description" value={skillFormData.description} onChange={updateSkillField} />
+        </label>
+
+        {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
+        {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
+
+        <button type="submit" disabled={isCreatingSkill}>
+          {isCreatingSkill ? "Сохраняем..." : "Добавить навык"}
+        </button>
+      </form>
+
+      <form className="manager-form" onSubmit={handleEmployeeSubmit} autoComplete="off">
+        <h2>Новый сотрудник</h2>
+
+        <label>
+          Логин
+          <input
+            name="username"
+            type="text"
+            placeholder="Введите логин"
+            value={employeeFormData.username}
+            onChange={updateEmployeeField}
+            autoComplete="off"
+            required
+          />
+        </label>
+
+        <label>
+          Пароль
+          <input
+            name="password"
+            type="password"
+            placeholder="Минимум 8 символов"
+            value={employeeFormData.password}
+            onChange={updateEmployeeField}
+            autoComplete="new-password"
+            required
+            minLength={8}
+          />
+        </label>
+
+        {employeeFormError && <p className="form-message form-message--error">{employeeFormError}</p>}
+        {employeeFormStatus && <p className="form-message">{employeeFormStatus}</p>}
+
+        <button type="submit" disabled={isCreatingEmployee}>
+          {isCreatingEmployee ? "Сохраняем..." : "Добавить сотрудника"}
+        </button>
+      </form>
+    </aside>
+  );
+
+  return (
+    <>
+      {isManager ? (
+        <div className="manager-dashboard">
+          {heroSection}
+
+          <section className="summary summary--manager" aria-label="Сводка">
+            <article>
+              <span>Сотрудников</span>
+              <strong>{employees.length || teamMembers.length}</strong>
+            </article>
+            <div className="summary__main">
+              <article>
+                <span>Средний прогресс</span>
+                <strong>{averageProgress}%</strong>
+              </article>
+              <article>
+                <span>В работе</span>
+                <strong>{tasksInProgress}</strong>
+              </article>
+            </div>
+          </section>
+
+          {managerSidebar}
+          {mainContent}
+        </div>
+      ) : (
+        <>
+          {heroSection}
+
+          <section className="summary" aria-label="Сводка">
+            <article>
+              <span>Всего задач</span>
+              <strong>{tasks.length}</strong>
+            </article>
+            <article>
+              <span>Средний прогресс</span>
+              <strong>{averageProgress}%</strong>
+            </article>
+            <article>
+              <span>Навыков в работе</span>
+              <strong>{skillsCount}</strong>
+            </article>
+          </section>
+
+          <div className="dashboard-layout dashboard-layout--no-sidebar">
+            {mainContent}
+          </div>
+        </>
+      )}
 
       <TaskDetailModal
         canAddProgress={!isManager}

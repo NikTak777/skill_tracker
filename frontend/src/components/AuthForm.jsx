@@ -85,13 +85,11 @@ export default function AuthForm({ onAuthSuccess }) {
   return (
     <section className="auth-layout">
       <div className="hero auth-hero">
-        <p className="label">Доступ</p>
         <h1>Вход в SkillTracker</h1>
         <p>Войдите, чтобы перейти на панель работника и работать с задачами.</p>
       </div>
 
       <form className="auth-form" onSubmit={handleSubmit}>
-        <p className="label">Уже есть аккаунт</p>
         <h2>Введите данные</h2>
 
         <label>

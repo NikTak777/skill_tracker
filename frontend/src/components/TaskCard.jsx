@@ -38,6 +38,12 @@ function getTaskProgress(task) {
   return 0;
 }
 
+const STATUS_LABELS = {
+  todo: "К выполнению",
+  in_progress: "В работе",
+  done: "Готова",
+};
+
 export default function TaskCard({
   actionLabel,
   isUpdating = false,
@@ -55,8 +61,12 @@ export default function TaskCard({
   return (
     <article className={`task-card${onOpenDetail ? " task-card--interactive" : ""}`}>
       <div className="task-card__top">
-        <span>{skill || "Навык не указан"}</span>
-        <span>{task.status}</span>
+        <span className="task-card__badge task-card__badge--skill">
+          {skill || "Навык не указан"}
+        </span>
+        <span className={`task-card__badge task-card__badge--status task-card__badge--status-${task.status}`}>
+          {STATUS_LABELS[task.status] || task.status}
+        </span>
       </div>
       {onOpenDetail ? (
         <button className="task-card__title-button" type="button" onClick={() => onOpenDetail(task)}>
