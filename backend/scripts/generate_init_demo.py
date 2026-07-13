@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-"""
-Генерирует backend/scripts/init_demo.sql с демо-данными SkillTracker.
-
-Запуск:
-    python backend/scripts/generate_init_demo.py
-"""
 from __future__ import annotations
 
 import base64

@@ -1,13 +1,3 @@
--- SkillTracker: демо-данные для PostgreSQL
--- Запускать ПОСЛЕ: python manage.py migrate
---
--- Учётные записи:
---   admin / admin123          (Django Admin, суперпользователь)
---   manager_* / password123   (5 руководителей)
---   employee_01..50 / password123
---
--- Сгенерировано: generate_init_demo.py (seed=20260713)
-
 BEGIN;
 
 TRUNCATE TABLE app_comment, app_progress, app_task, app_skill RESTART IDENTITY CASCADE;
