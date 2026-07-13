@@ -1,5 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 
+import ThemeToggle from "../components/ThemeToggle.jsx";
+
 
 export default function AuthLayout() {
   const location = useLocation();
@@ -10,17 +12,8 @@ export default function AuthLayout() {
       <header className="auth-header">
         <Link className="auth-brand" to="/login">
           <strong>SkillTracker</strong>
-          <span>Планы развития</span>
         </Link>
-
-        <div className="auth-header__links">
-          <Link className={isLogin ? "active" : ""} to="/login">
-            Вход
-          </Link>
-          <Link className={!isLogin ? "active" : ""} to="/register">
-            Регистрация
-          </Link>
-        </div>
+        <ThemeToggle />
       </header>
 
       <Outlet />

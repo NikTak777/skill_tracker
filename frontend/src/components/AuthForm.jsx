@@ -118,18 +118,12 @@ export default function AuthForm({ mode, onAuthSuccess }) {
   return (
     <section className="auth-layout">
       <div className="hero auth-hero">
-        <p className="label">Доступ</p>
-        <h1>{isLogin ? "Вход в SkillTracker" : "Регистрация пользователя"}</h1>
-        <p>
-          {isLogin
-            ? "Войдите, чтобы перейти на Dashboard и работать с задачами."
-            : "Создайте аккаунт manager или employee для работы в системе."}
-        </p>
+        <h1>Вход в SkillTracker</h1>
+        <p>Войдите, чтобы перейти на панель работника и работать с задачами.</p>
       </div>
 
       <form className="auth-form" onSubmit={handleSubmit}>
-        <p className="label">{isLogin ? "Уже есть аккаунт" : "Новый аккаунт"}</p>
-        <h2>{isLogin ? "Введите данные" : "Заполните профиль"}</h2>
+        <h2>Введите данные</h2>
 
         <label>
           Username

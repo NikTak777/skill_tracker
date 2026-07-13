@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { clearTokens } from "../api.js";
 import { useSession } from "../context/SessionContext.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 
 
 const ROLE_LABELS = {
@@ -9,26 +10,8 @@ const ROLE_LABELS = {
   employee: "Сотрудник",
 };
 
-const navItems = [
-  { path: "/dashboard", label: "Dashboard", authOnly: true },
-  { path: "/employee", label: "Сотрудник", authOnly: true, roles: ["employee"] },
-  { path: "/manager", label: "Руководитель", authOnly: true, roles: ["manager"] },
-];
-
-export default function Navbar({ activePath, onNavigate, session, onLogout }) {
+export default function Navbar({ onNavigate, session, onLogout }) {
   const navigate = useNavigate();
-
-  const visibleNavItems = navItems.filter((item) => {
-    if (item.authOnly && !session.isAuthenticated) {
-      return false;
-    }
-
-    if (item.roles) {
-      return session.isAuthenticated && item.roles.includes(session.role);
-    }
-
-    return true;
-  });
 
   function handleLogout() {
     clearTokens();
@@ -42,36 +25,26 @@ export default function Navbar({ activePath, onNavigate, session, onLogout }) {
     <nav className="top-nav" aria-label="Разделы приложения">
       <Link className="brand auth-brand" to={session.isAuthenticated ? "/dashboard" : "/login"}>
         <strong>SkillTracker</strong>
-        <span>Планы развития</span>
       </Link>
 
-      <div className="nav-actions">
-        {visibleNavItems.map((item) => (
-          <button
-            className={activePath === item.path ? "active" : ""}
-            key={item.path}
-            type="button"
-            onClick={() => onNavigate(item.path)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <div className="top-nav__actions">
+        <ThemeToggle />
 
-      <div className={`session-badge ${session.isAuthenticated ? "active" : ""}`}>
-        <div>
-          <strong>{session.isAuthenticated ? session.username || "В системе" : "Не в системе"}</strong>
-          <span>{session.isAuthenticated ? ROLE_LABELS[session.role] || session.role : "Гость"}</span>
+        <div className={`session-badge ${session.isAuthenticated ? "active" : ""}`}>
+          <div>
+            <strong>{session.isAuthenticated ? session.username || "В системе" : "Не в системе"}</strong>
+            <span>{session.isAuthenticated ? ROLE_LABELS[session.role] || session.role : "Гость"}</span>
+          </div>
+          {session.isAuthenticated ? (
+            <button className="logout-button" type="button" onClick={handleLogout}>
+              Выйти
+            </button>
+          ) : (
+            <button className="logout-button" type="button" onClick={() => navigate("/login")}>
+              Войти
+            </button>
+          )}
         </div>
-        {session.isAuthenticated ? (
-          <button className="logout-button" type="button" onClick={handleLogout}>
-            Выйти
-          </button>
-        ) : (
-          <button className="logout-button" type="button" onClick={() => navigate("/login")}>
-            Войти
-          </button>
-        )}
       </div>
     </nav>
   );
