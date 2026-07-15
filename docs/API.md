@@ -25,7 +25,7 @@ Content-Type: application/json
 
 | Роль | Значение | Описание |
 |------|----------|----------|
-| Руководитель | `manager` | Создаёт задачи, следит за прогрессом |
+| Руководитель | `manager` | Создаёт задачи и аккаунты сотрудников, следит за прогрессом |
 | Сотрудник | `employee` | Выполняет задачи, отмечает прогресс |
 
 ### Срок жизни токенов
@@ -234,6 +234,10 @@ Content-Type: application/json
 
 ---
 
+## Employees
+
+Управление сотрудниками. Доступно только руководителю (`manager`).
+
 ### Список сотрудников
 
 Возвращает пользователей с ролью `employee` для выбора при создании задачи.
@@ -262,6 +266,52 @@ Content-Type: application/json
 
 ---
 
+### Создание сотрудника
+
+Создаёт аккаунт с ролью `employee`. Роль в теле запроса передавать не нужно — API выставляет её сам.
+
+| | |
+|---|---|
+| **Метод** | `POST` |
+| **URL** | `/api/employees/` |
+| **Auth** | Требуется |
+| **Доступ** | Только `manager` |
+
+**Body:**
+
+```json
+{
+  "username": "new_employee",
+  "password": "password123",
+  "email": "new@example.com",
+  "first_name": "Petr",
+  "last_name": "Ivanov"
+}
+```
+
+| Поле | Тип | Обязательное | Описание |
+|------|-----|--------------|----------|
+| `username` | string | да | 3–150 символов |
+| `password` | string | да | Минимум 8 символов |
+| `email` | string | нет | Валидный email |
+| `first_name` | string | нет | Имя |
+| `last_name` | string | нет | Фамилия |
+
+**Ответ `201 Created`:**
+
+```json
+{
+  "id": 3,
+  "username": "new_employee",
+  "email": "new@example.com",
+  "role": "employee",
+  "first_name": "Petr",
+  "last_name": "Ivanov"
+}
+```
+
+---
+
 ## Tasks
 
 Задачи развития, привязанные к навыку (`skill`), руководителю (`manager`) и сотруднику (`employee`).
@@ -280,7 +330,29 @@ Content-Type: application/json
 - `manager` — задачи, которые он создал
 - `employee` — задачи, назначенные ему
 
-**Ответ `200 OK`:**
+**Query-параметры:**
+
+| Параметр | Описание |
+|----------|----------|
+| `status` | Фильтр по статусу: `todo`, `in_progress` или `done` |
+| `page` | Номер страницы. Учитывается **только** при `status=done` |
+
+**Пагинация:**
+
+- Без `status` или при `status=todo` / `status=in_progress` — полный список **без** пагинации (обычный JSON-массив).
+- При `status=done` — постраничная выдача, **по 10 задач** на страницу (формат DRF PageNumberPagination).
+
+**Примеры запросов:**
+
+```http
+GET /api/tasks/
+GET /api/tasks/?status=todo
+GET /api/tasks/?status=in_progress
+GET /api/tasks/?status=done&page=1
+GET /api/tasks/?status=done&page=2
+```
+
+**Ответ `200 OK` (без пагинации — массив):**
 
 ```json
 [
@@ -316,6 +388,57 @@ Content-Type: application/json
   }
 ]
 ```
+
+**Ответ `200 OK` (`status=done` — страница):**
+
+```json
+{
+  "count": 42,
+  "next": "http://localhost:8000/api/tasks/?status=done&page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 10,
+      "title": "Настроить CI/CD для Auth Service",
+      "description": "Развернуть пайплайн в GitLab CI",
+      "skill": {
+        "id": 8,
+        "name": "Git / GitLab CI",
+        "description": "Версионирование и CI/CD пайплайны"
+      },
+      "manager": {
+        "id": 1,
+        "username": "ivan_manager",
+        "email": "ivan@example.com",
+        "role": "manager",
+        "first_name": "Ivan",
+        "last_name": "Sokolov"
+      },
+      "employee": {
+        "id": 2,
+        "username": "anna_employee",
+        "email": "anna@example.com",
+        "role": "employee",
+        "first_name": "Anna",
+        "last_name": "Petrova"
+      },
+      "status": "done",
+      "due_date": "2026-07-20",
+      "created_at": "2026-07-01T10:00:00Z",
+      "updated_at": "2026-07-18T14:00:00Z"
+    }
+  ]
+}
+```
+
+| Поле | Описание |
+|------|----------|
+| `count` | Общее число выполненных задач |
+| `next` | URL следующей страницы или `null` |
+| `previous` | URL предыдущей страницы или `null` |
+| `results` | Массив задач (до 10 штук) |
+
+Типичный сценарий на frontend: сначала загрузить все активные (`todo` + `in_progress`), затем подгружать выполненные порциями через `?status=done&page=N`.
 
 ---
 
@@ -389,7 +512,10 @@ Content-Type: application/json
 
 | Поле | Тип | Значения |
 |------|-----|----------|
+| `title` | string | 1–200 символов |
+| `description` | string | произвольный текст |
 | `status` | string | `todo`, `in_progress`, `done` |
+| `due_date` | date / null | `YYYY-MM-DD` |
 
 **Ответ `200 OK`:** обновлённый объект задачи.
 
@@ -614,6 +740,43 @@ Content-Type: application/json
 
 ---
 
+### Создание навыка
+
+| | |
+|---|---|
+| **Метод** | `POST` |
+| **URL** | `/api/skills/` |
+| **Auth** | Требуется |
+| **Доступ** | Только `manager` |
+
+**Body:**
+
+```json
+{
+  "name": "Kubernetes",
+  "description": "Оркестрация и деплой в кластер"
+}
+```
+
+| Поле | Тип | Обязательное | Описание |
+|------|-----|--------------|----------|
+| `name` | string | да | 1–100 символов |
+| `description` | string | нет | Описание навыка |
+
+**Ответ `201 Created`:**
+
+```json
+{
+  "id": 3,
+  "name": "Kubernetes",
+  "description": "Оркестрация и деплой в кластер"
+}
+```
+
+Навыки также можно загрузить через Django Admin (`/admin/`) или SQL-скрипт инициализации БД (`backend/scripts/init_demo.sql`).
+
+---
+
 ### Получение навыка
 
 | | |
@@ -632,17 +795,17 @@ Content-Type: application/json
 }
 ```
 
-> Навыки создаются через Django Admin (`/admin/`) или SQL-скрипт инициализации БД.
-
 ---
 
 ## Типовой сценарий использования
 
-### 1. Руководитель создаёт задачу
+### 1. Руководитель подготавливает справочники и задачу
 
 ```http
 POST /api/auth/token/
-POST /api/skills/          → получить id навыка
+POST /api/employees/       → создать аккаунт сотрудника (опционально)
+POST /api/skills/          → создать навык (опционально)
+GET  /api/skills/          → получить id навыка
 GET  /api/employees/       → получить id сотрудника
 POST /api/tasks/           → создать задачу
 ```
@@ -651,7 +814,8 @@ POST /api/tasks/           → создать задачу
 
 ```http
 POST /api/auth/token/
-GET  /api/tasks/           → список своих задач
+GET  /api/tasks/?status=todo
+GET  /api/tasks/?status=in_progress
 POST /api/progress/        → добавить прогресс
 POST /api/comments/        → оставить комментарий
 PATCH /api/tasks/{id}/     → обновить статус на done
@@ -660,7 +824,9 @@ PATCH /api/tasks/{id}/     → обновить статус на done
 ### 3. Руководитель проверяет результат
 
 ```http
-GET /api/tasks/
+GET /api/tasks/?status=todo
+GET /api/tasks/?status=in_progress
+GET /api/tasks/?status=done&page=1
 GET /api/progress/?task=1
 GET /api/comments/?task=1
 POST /api/comments/        → обратная связь
@@ -676,7 +842,10 @@ POST /api/comments/        → обратная связь
 | `POST /api/auth/token/` | ✅ | ✅ |
 | `GET /api/auth/me/` | ✅ | ✅ |
 | `GET /api/employees/` | ✅ | ❌ |
+| `POST /api/employees/` | ✅ | ❌ |
 | `GET /api/tasks/` | ✅ (свои) | ✅ (назначенные) |
+| `GET /api/tasks/?status=...` | ✅ | ✅ |
+| `GET /api/tasks/?status=done&page=N` | ✅ (по 10) | ✅ (по 10) |
 | `POST /api/tasks/` | ✅ | ❌ |
 | `PATCH /api/tasks/{id}/` | ✅ (участник) | ✅ (участник) |
 | `DELETE /api/tasks/{id}/` | ✅ (создатель) | ❌ |
@@ -685,3 +854,5 @@ POST /api/comments/        → обратная связь
 | `GET /api/comments/` | ✅ | ✅ |
 | `POST /api/comments/` | ✅ (участник) | ✅ (участник) |
 | `GET /api/skills/` | ✅ | ✅ |
+| `POST /api/skills/` | ✅ | ❌ |
+| `GET /api/skills/{id}/` | ✅ | ✅ |
