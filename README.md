@@ -121,7 +121,8 @@ docker compose exec -T db psql -U postgres -d skill_tracker < backend/scripts/in
 ```text
 skill_tracker/
 ├── backend/                 # Django + DRF
-│   ├── app/                 # модели, API, права, фильтры
+│   ├── app/                 # модели, API, права, фильтры, тесты
+│   │   └── tests.py         # DRF-тесты API
 │   ├── project/             # settings, urls
 │   ├── scripts/
 │   │   ├── init_demo.sql    # демо-данные
@@ -159,6 +160,24 @@ skill_tracker/
 
 ---
 
+## Тесты API (backend)
+
+Автоматические DRF-тесты проверяют ключевые сценарии API: auth, tasks, progress, comments, skills и права доступа (403).  
+Контейнеры должны быть подняты (`docker compose up -d` или уже работающий стек).
+
+```bash
+docker compose exec backend python manage.py test app
+```
+
+Успешный прогон выглядит так:
+
+```text
+Ran ... tests in ...s
+OK
+```
+
+---
+
 ## Полезные команды
 
 ```bash
@@ -170,6 +189,9 @@ docker compose logs -f backend
 
 # Migrate вручную в контейнере
 docker compose exec backend python manage.py migrate
+
+# Прогон API-тестов
+docker compose exec backend python manage.py test app
 
 # Django shell
 docker compose exec backend python manage.py shell
