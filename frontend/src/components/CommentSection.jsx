@@ -61,7 +61,7 @@ function getApiErrorMessage(error) {
   return "Не удалось сохранить комментарий.";
 }
 
-export default function CommentSection({ onChanged, taskId }) {
+export default function CommentSection({ taskId }) {
   const [comments, setComments] = useState([]);
   const [text, setText] = useState("");
   const [loadStatus, setLoadStatus] = useState("loading");
@@ -104,7 +104,6 @@ export default function CommentSection({ onChanged, taskId }) {
       setText("");
       setStatusMessage("Комментарий добавлен.");
       await loadComments();
-      onChanged?.();
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error));
     } finally {

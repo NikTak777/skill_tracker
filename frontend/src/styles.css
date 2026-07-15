@@ -102,6 +102,7 @@
 body {
   margin: 0;
   background: var(--color-bg);
+  overflow-x: clip;
 }
 
 .page {
@@ -111,6 +112,7 @@ body {
   max-width: 1120px;
   padding: 48px 24px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .top-nav {
@@ -264,7 +266,7 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  padding: 32px;
+  padding: 24px;
   width: 100%;
 }
 
@@ -323,34 +325,52 @@ h1 {
   align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   width: 100%;
 }
 
-.manager-dashboard > .hero {
-  grid-column: 1 / -1;
+.manager-dashboard > .dashboard-sidebar {
+  grid-column: 1;
+  grid-row: 1;
 }
 
-.manager-dashboard > .summary {
-  display: contents;
+.manager-dashboard__content {
+  display: grid;
+  gap: 16px;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.manager-dashboard__content > .summary {
+  margin: 0;
+}
+
+.manager-dashboard__content > .summary {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .manager-dashboard .summary__main {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, 1fr);
+  display: contents;
 }
 
-.manager-dashboard .summary article:nth-child(1) {
+.manager-dashboard .summary > article:nth-child(1) {
   background: var(--color-primary-soft);
 }
 
-.manager-dashboard .summary__main article:nth-child(1) {
+.manager-dashboard .summary > article:nth-child(2) {
   background: var(--color-success-soft);
 }
 
-.manager-dashboard .summary__main article:nth-child(2) {
+.manager-dashboard .summary > article:nth-child(3) {
   background: var(--color-accent-soft);
+}
+
+.manager-dashboard .dashboard-main .task-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
 }
 
 .summary__main {
@@ -452,7 +472,32 @@ h1 {
 .task-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.tasks-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  width: 100%;
+}
+
+.tasks-panel .manager-tasks {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin-top: 0;
+  padding: 0;
+}
+
+.tasks-panel .manager-tasks--done {
+  border-top: 1px solid var(--color-border);
+  margin-top: 8px;
+  padding-top: 24px;
 }
 
 .employee-layout {
@@ -807,7 +852,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 8px 0 4px;
+  margin: 0;
 }
 
 .task-status-filter__button {
@@ -846,7 +891,7 @@ h1 {
 }
 
 .manager-tasks {
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .manager-tasks--done {
@@ -916,6 +961,7 @@ h1 {
   display: flex;
   flex-direction: column;
   min-height: 320px;
+  min-width: 0;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -945,6 +991,7 @@ h1 {
   font-size: 26px;
   line-height: 1.1;
   margin: 28px 0 12px;
+  overflow-wrap: anywhere;
 }
 
 .task-card__title-button:hover h2,
@@ -1099,11 +1146,14 @@ h1 {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+  box-sizing: border-box;
   display: grid;
   gap: 20px;
   left: 50%;
   max-height: calc(100vh - 48px);
-  max-width: 760px;
+  max-width: min(760px, calc(100vw - 32px));
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 24px;
   position: relative;
@@ -1117,10 +1167,21 @@ h1 {
   display: flex;
   gap: 16px;
   justify-content: space-between;
+  min-width: 0;
+}
+
+.task-modal__header > div {
+  flex: 1;
+  min-width: 0;
 }
 
 .task-modal__header h2 {
   margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.task-modal__close {
+  flex-shrink: 0;
 }
 
 .task-modal__meta,
@@ -1144,6 +1205,7 @@ h1 {
   color: var(--color-muted);
   line-height: 1.5;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .task-modal__section,
@@ -1151,6 +1213,7 @@ h1 {
   border-top: 1px solid var(--color-border);
   display: grid;
   gap: 16px;
+  min-width: 0;
   padding-top: 20px;
 }
 
@@ -1168,6 +1231,7 @@ h1 {
   background: var(--color-input-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  min-width: 0;
   padding: 14px;
 }
 
@@ -1195,16 +1259,19 @@ h1 {
   color: var(--color-text);
   line-height: 1.5;
   margin: 10px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .progress-form,
 .comment-form {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .progress-form textarea,
 .comment-form textarea {
+  max-width: 100%;
   min-height: 96px;
   resize: vertical;
 }
@@ -1349,6 +1416,16 @@ h1 {
   .employee-layout,
   .manager-layout,
   .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-dashboard > .dashboard-sidebar,
+  .manager-dashboard__content {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .manager-dashboard__content > .summary {
     grid-template-columns: 1fr;
   }
 
