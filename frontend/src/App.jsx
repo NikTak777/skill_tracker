@@ -6,10 +6,7 @@ import { ThemeProvider } from "./context/ThemeContext.jsx";
 import AppLayout from "./layouts/AppLayout.jsx";
 import AuthLayout from "./layouts/AuthLayout.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
-import EmployeeTasks from "./pages/EmployeeTasks.jsx";
 import Login from "./pages/Login.jsx";
-import ManagerPanel from "./pages/ManagerPanel.jsx";
-import Register from "./pages/Register.jsx";
 import "./styles.css";
 
 export default function App() {
