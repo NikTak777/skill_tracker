@@ -135,7 +135,8 @@ skill_tracker/
 │   ├── Dockerfile
 │   └── package.json
 ├── docs/
-│   └── API.md               # документация API
+│   ├── API.md               # документация API
+│   └── SkillTracker.postman_collection.json  # примеры запросов
 ├── docker-compose.yml
 └── README.md
 ```
@@ -157,6 +158,17 @@ skill_tracker/
 - Skills — список и создание навыков
 
 Базовый URL API: `http://localhost:8000/api/`
+
+### Postman-коллекция
+
+Готовые примеры запросов: [`docs/SkillTracker.postman_collection.json`](docs/SkillTracker.postman_collection.json).
+
+1. Импортируйте файл в Postman, Insomnia, Bruno или Thunder Client.
+2. Переменная `baseUrl` по умолчанию: `http://localhost:8000/api`.
+3. Выполните **Auth → Login (token)** (например `manager_ivan` / `password123`).
+4. Скопируйте `access` из ответа в переменную коллекции `access` — дальше запросы пойдут с `Authorization: Bearer {{access}}`.
+
+В коллекции есть папки: Auth, Employees, Skills, Tasks, Progress, Comments.
 
 ---
 
