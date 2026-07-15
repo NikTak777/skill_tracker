@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { createComment, getComments } from "../api.js";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 
 
@@ -37,28 +38,6 @@ function formatDate(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function getApiErrorMessage(error) {
-  const data = error.response?.data;
-
-  if (!data) {
-    return "Backend недоступен. Проверьте, что сервер запущен.";
-  }
-
-  if (typeof data === "string") {
-    return data;
-  }
-
-  if (data.detail) {
-    return data.detail;
-  }
-
-  if (data.text) {
-    return Array.isArray(data.text) ? data.text.join(" ") : data.text;
-  }
-
-  return "Не удалось сохранить комментарий.";
 }
 
 export default function CommentSection({ taskId }) {
@@ -105,7 +84,7 @@ export default function CommentSection({ taskId }) {
       setStatusMessage("Комментарий добавлен.");
       await loadComments();
     } catch (error) {
-      setErrorMessage(getApiErrorMessage(error));
+      setErrorMessage(getApiErrorMessage(error, "Не удалось сохранить комментарий."));
     } finally {
       setIsSubmitting(false);
     }

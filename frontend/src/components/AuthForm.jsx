@@ -2,38 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getMe, login, register } from "../api.js";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 
-
-function getErrorMessage(error) {
-  const responseData = error.response?.data;
-
-  if (!responseData) {
-    return "Backend недоступен. Проверьте, что сервер запущен.";
-  }
-
-  if (typeof responseData === "string") {
-    return responseData;
-  }
-
-  if (responseData.detail) {
-    return responseData.detail;
-  }
-
-  if (responseData.username) {
-    return `Username: ${Array.isArray(responseData.username) ? responseData.username.join(" ") : responseData.username}`;
-  }
-
-  if (responseData.password) {
-    return `Password: ${Array.isArray(responseData.password) ? responseData.password.join(" ") : responseData.password}`;
-  }
-
-  if (responseData.email) {
-    return `Email: ${Array.isArray(responseData.email) ? responseData.email.join(" ") : responseData.email}`;
-  }
-
-  return "Запрос завершился ошибкой. Проверьте введенные данные.";
-}
 
 export default function AuthForm({ mode, onAuthSuccess }) {
   const isLogin = mode === "login";
@@ -109,7 +80,7 @@ export default function AuthForm({ mode, onAuthSuccess }) {
         username: profile.username || formData.username,
       });
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setErrorMessage(getApiErrorMessage(error, "Запрос завершился ошибкой. Проверьте введённые данные."));
     } finally {
       setIsSubmitting(false);
     }
@@ -126,11 +97,11 @@ export default function AuthForm({ mode, onAuthSuccess }) {
         <h2>Введите данные</h2>
 
         <label>
-          login
+          Логин
           <input
             name="username"
             type="text"
-            placeholder="employee"
+            placeholder="Введите логин"
             value={formData.username}
             onChange={updateField}
             required
@@ -187,7 +158,7 @@ export default function AuthForm({ mode, onAuthSuccess }) {
         <p className="auth-form__switch">
           {isLogin ? (
             <>
-              обратись за данными к руководителю
+              Нет аккаунта? Обратитесь за данными к руководителю
             </>
           ) : (
             <>

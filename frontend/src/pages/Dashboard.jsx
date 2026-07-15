@@ -11,6 +11,7 @@ import {
   getTasksByStatusFilter,
   updateTask,
 } from "../api.js";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
@@ -86,32 +87,6 @@ function getPersonName(person) {
 
 function getEmployeeLabel(employee) {
   return getPersonName(employee) || employee.username;
-}
-
-function getApiErrorMessage(error, fallback = "Не удалось выполнить запрос.") {
-  const data = error.response?.data;
-
-  if (!data) {
-    return fallback;
-  }
-
-  if (typeof data === "string") {
-    return data;
-  }
-
-  if (data.detail) {
-    return data.detail;
-  }
-
-  if (data.errors) {
-    return "Ошибка валидации. Проверьте введённые данные.";
-  }
-
-  const fieldErrors = Object.entries(data)
-    .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(" ") : value}`)
-    .join(" ");
-
-  return fieldErrors || fallback;
 }
 
 export default function Dashboard() {
@@ -424,10 +399,7 @@ export default function Dashboard() {
       await updateTask(task.id, { status: nextStatus });
       await loadDashboardData();
     } catch (error) {
-      const message = error.response?.data?.detail
-        || error.response?.data?.status
-        || "Не удалось обновить статус задачи.";
-      setStatusError(typeof message === "string" ? message : "Не удалось обновить статус задачи.");
+      setStatusError(getApiErrorMessage(error, "Не удалось обновить статус задачи."));
     } finally {
       setUpdatingTaskId(null);
     }

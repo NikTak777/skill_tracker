@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { getMe, getTasksWithProgress, updateTask } from "../api.js";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
@@ -80,10 +81,7 @@ export default function EmployeeTasks() {
       await updateTask(task.id, { status: nextStatus });
       await loadEmployeeData();
     } catch (error) {
-      const message = error.response?.data?.detail
-        || error.response?.data?.status
-        || "Не удалось обновить статус задачи.";
-      setStatusError(typeof message === "string" ? message : "Не удалось обновить статус задачи.");
+      setStatusError(getApiErrorMessage(error, "Не удалось обновить статус задачи."));
     } finally {
       setUpdatingTaskId(null);
     }
@@ -109,7 +107,7 @@ export default function EmployeeTasks() {
         </p>
         <p className="form-message">
           {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/progress/ и /api/comments/."}
-          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
+          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте сервер и авторизацию."}
         </p>
         {statusError && <p className="form-message form-message--error">{statusError}</p>}
       </section>
