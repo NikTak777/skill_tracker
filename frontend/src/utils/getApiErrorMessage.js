@@ -109,7 +109,7 @@ export default function getApiErrorMessage(error, fallback = "Не удалос�
 
   if (!data) {
     if (!error?.response) {
-      return "Сервер недоступен. Проверьте, что backend запущен.";
+      return "Сервер недоступен. Попробуйте зайти позже.";
     }
 
     return fallback;

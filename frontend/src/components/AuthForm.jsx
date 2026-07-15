@@ -101,7 +101,7 @@ export default function AuthForm({ mode, onAuthSuccess }) {
           <input
             name="username"
             type="text"
-            placeholder="employee"
+            placeholder="Введите логин"
             value={formData.username}
             onChange={updateField}
             required

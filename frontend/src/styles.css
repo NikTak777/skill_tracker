@@ -53,6 +53,12 @@
   --radius-lg: 22px;
   --shadow-sm: 0 4px 16px rgba(16, 24, 40, 0.06);
   --shadow-md: 0 12px 32px rgba(16, 24, 40, 0.1);
+  --layout-max-width: 1456px;
+  --auth-page-max-width: 1196px;
+  --sidebar-width: 421px;
+  --sidebar-min-width: 328px;
+  --auth-form-width: 546px;
+  --modal-max-width: 988px;
   color: var(--color-text);
   background: var(--color-bg);
   color-scheme: light;
@@ -109,7 +115,7 @@ body {
   display: grid;
   gap: 24px;
   margin: 0 auto;
-  max-width: 1120px;
+  max-width: var(--layout-max-width);
   padding: 48px 24px;
   width: 100%;
   box-sizing: border-box;
@@ -299,7 +305,7 @@ h1 {
   font-size: clamp(36px, 7vw, 72px);
   line-height: 0.95;
   margin: 0;
-  max-width: 780px;
+  max-width: 1014px;
 }
 
 .hero p:last-child {
@@ -307,7 +313,7 @@ h1 {
   font-size: 18px;
   line-height: 1.6;
   margin: 24px 0 0;
-  max-width: 680px;
+  max-width: 884px;
 }
 
 .summary {
@@ -318,14 +324,14 @@ h1 {
 }
 
 .summary--aligned {
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
 }
 
 .manager-dashboard {
   align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--sidebar-min-width), var(--sidebar-width)) minmax(0, 1fr);
   width: 100%;
 }
 
@@ -510,7 +516,7 @@ h1 {
 .dashboard-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
   margin-top: 24px;
   align-items: start;
 }
@@ -536,7 +542,7 @@ h1 {
 .manager-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
   margin-top: 24px;
 }
 
@@ -553,7 +559,7 @@ h1 {
 .auth-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr 420px;
+  grid-template-columns: 1fr var(--auth-form-width);
 }
 
 .manager-profile h2,
@@ -809,6 +815,7 @@ h1 {
 .employee-list {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 24px;
 }
 
@@ -1160,7 +1167,7 @@ h1 {
   gap: 20px;
   left: 50%;
   max-height: calc(100vh - 48px);
-  max-width: min(760px, calc(100vw - 32px));
+  max-width: min(var(--modal-max-width), calc(100vw - 32px));
   min-width: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -1317,7 +1324,7 @@ h1 {
 }
 
 .auth-page {
-  max-width: 920px;
+  max-width: var(--auth-page-max-width);
 }
 
 .auth-header {
@@ -1445,6 +1452,10 @@ h1 {
   .role-panel {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .employee-list {
+    grid-template-columns: 1fr;
   }
 
   .employee-row,
