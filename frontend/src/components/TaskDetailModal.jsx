@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { createProgress, getProgress } from "../api.js";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 import CommentSection from "./CommentSection.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 import ProgressBar from "./ProgressBar.jsx";
@@ -64,28 +65,6 @@ function getLatestProgressPercent(entries) {
   }
 
   return entries[0].percent || 0;
-}
-
-function getApiErrorMessage(error) {
-  const data = error.response?.data;
-
-  if (!data) {
-    return "Backend недоступен. Проверьте, что сервер запущен.";
-  }
-
-  if (typeof data === "string") {
-    return data;
-  }
-
-  if (data.detail) {
-    return data.detail;
-  }
-
-  if (data.percent) {
-    return Array.isArray(data.percent) ? data.percent.join(" ") : data.percent;
-  }
-
-  return "Не удалось сохранить прогресс.";
 }
 
 export default function TaskDetailModal({
@@ -158,7 +137,7 @@ export default function TaskDetailModal({
       await loadProgress();
       onUpdated?.();
     } catch (error) {
-      setFormError(getApiErrorMessage(error));
+      setFormError(getApiErrorMessage(error, "Не удалось сохранить прогресс."));
     } finally {
       setIsSubmitting(false);
     }

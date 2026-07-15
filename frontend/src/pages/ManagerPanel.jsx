@@ -9,6 +9,7 @@ import {
   getSkills,
   getTasks,
 } from "../api.js";
+import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
@@ -73,32 +74,6 @@ function getEmployeeLabel(employee) {
   }
 
   return name;
-}
-
-function getApiErrorMessage(error, fallback = "Запрос завершился ошибкой. Проверьте данные формы.") {
-  const data = error.response?.data;
-
-  if (!data) {
-    return "Backend недоступен. Проверьте, что сервер запущен.";
-  }
-
-  if (typeof data === "string") {
-    return data;
-  }
-
-  if (data.detail) {
-    return data.detail;
-  }
-
-  if (data.errors) {
-    return "Ошибка валидации. Проверьте введённые данные.";
-  }
-
-  const fieldErrors = Object.entries(data)
-    .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(" ") : value}`)
-    .join(" ");
-
-  return fieldErrors || fallback;
 }
 
 export default function ManagerPanel() {
@@ -271,7 +246,7 @@ export default function ManagerPanel() {
         </p>
         <p className="form-message">
           {loadStatus === "success" && "Данные загружены из /api/auth/me/, /api/tasks/, /api/skills/ и /api/employees/."}
-          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте backend и авторизацию."}
+          {loadStatus === "error" && "Не удалось загрузить данные. Проверьте сервер и авторизацию."}
         </p>
       </section>
 
