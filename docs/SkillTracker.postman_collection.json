@@ -1,0 +1,292 @@
+{
+  "info": {
+    "name": "SkillTracker API",
+    "description": "Примеры запросов к SkillTracker REST API (auth, employees, tasks, progress, comments, skills).\n\n1. Импортируйте коллекцию в Postman / Insomnia / Bruno / Thunder Client.\n2. Убедитесь, что backend запущен: http://localhost:8000\n3. Выполните Auth → Login (token), скопируйте access в переменную коллекции access.\n4. Для демо-данных: manager_ivan / password123 или employee_01 / password123.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000/api" },
+    { "key": "access", "value": "" },
+    { "key": "refresh", "value": "" },
+    { "key": "taskId", "value": "1" },
+    { "key": "skillId", "value": "1" },
+    { "key": "employeeId", "value": "7" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo_employee\",\n  \"email\": \"demo@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"employee\",\n  \"first_name\": \"Demo\",\n  \"last_name\": \"User\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register/",
+            "description": "Публичная регистрация пользователя."
+          }
+        },
+        {
+          "name": "Login (token)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"manager_ivan\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/token/",
+            "description": "Возвращает access + refresh. Подставьте access в переменную коллекции access."
+          }
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/token/refresh/"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/auth/me/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "List employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/employees/",
+            "description": "Только manager."
+          }
+        },
+        {
+          "name": "Create employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"new_employee\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/employees/",
+            "description": "Только manager. Роль employee выставляется на сервере."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Skills",
+      "item": [
+        {
+          "name": "List skills",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/skills/"
+          }
+        },
+        {
+          "name": "Create skill",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kubernetes\",\n  \"description\": \"Оркестрация и деплой\"\n}"
+            },
+            "url": "{{baseUrl}}/skills/",
+            "description": "Только manager."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "List all tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/tasks/"
+          }
+        },
+        {
+          "name": "List todo",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/tasks/?status=todo"
+          }
+        },
+        {
+          "name": "List in_progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/tasks/?status=in_progress"
+          }
+        },
+        {
+          "name": "List done (page 1)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/tasks/?status=done&page=1",
+            "description": "Пагинация только для status=done (по 10)."
+          }
+        },
+        {
+          "name": "Create task",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Изучить DRF\",\n  \"description\": \"Пройти основы ViewSet\",\n  \"skill\": {{skillId}},\n  \"employee\": {{employeeId}},\n  \"due_date\": \"2026-08-01\"\n}"
+            },
+            "url": "{{baseUrl}}/tasks/",
+            "description": "Только manager. Подставьте реальные skillId и employeeId."
+          }
+        },
+        {
+          "name": "Get task",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/tasks/{{taskId}}/"
+          }
+        },
+        {
+          "name": "Patch task status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "url": "{{baseUrl}}/tasks/{{taskId}}/"
+          }
+        },
+        {
+          "name": "Delete task",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/tasks/{{taskId}}/",
+            "description": "Только manager-создатель задачи."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Progress",
+      "item": [
+        {
+          "name": "List progress by task",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/progress/?task={{taskId}}"
+          }
+        },
+        {
+          "name": "Create progress",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task\": {{taskId}},\n  \"percent\": 40,\n  \"note\": \"Прочитал документацию\"\n}"
+            },
+            "url": "{{baseUrl}}/progress/",
+            "description": "Только employee по своей задаче. Логиньтесь как employee_01."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "List comments by task",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" }
+            ],
+            "url": "{{baseUrl}}/comments/?task={{taskId}}"
+          }
+        },
+        {
+          "name": "Create comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task\": {{taskId}},\n  \"text\": \"Хороший старт, продолжай\"\n}"
+            },
+            "url": "{{baseUrl}}/comments/"
+          }
+        }
+      ]
+    }
+  ]
+}
