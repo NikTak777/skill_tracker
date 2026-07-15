@@ -126,7 +126,7 @@ export default function AuthForm({ mode, onAuthSuccess }) {
         <h2>Введите данные</h2>
 
         <label>
-          Username
+          login
           <input
             name="username"
             type="text"
@@ -187,7 +187,7 @@ export default function AuthForm({ mode, onAuthSuccess }) {
         <p className="auth-form__switch">
           {isLogin ? (
             <>
-              Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+              обратись за данными к руководителю
             </>
           ) : (
             <>

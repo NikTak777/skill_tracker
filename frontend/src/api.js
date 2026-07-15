@@ -138,8 +138,8 @@ export async function getDashboardTasks() {
   ]);
 
   const activeTasks = [
-    ...getApiList(todoData),
     ...getApiList(inProgressData),
+    ...getApiList(todoData),
   ];
   const donePage = normalizeTaskPage(doneData);
 

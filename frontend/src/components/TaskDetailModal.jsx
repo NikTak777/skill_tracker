@@ -263,7 +263,7 @@ export default function TaskDetailModal({
           )}
         </section>
 
-        <CommentSection taskId={task.id} onChanged={onUpdated} />
+        <CommentSection taskId={task.id} />
       </div>
     </div>
   );

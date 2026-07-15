@@ -184,8 +184,10 @@ export default function Dashboard() {
     }
   }
 
-  async function loadDashboardData() {
-    setLoadStatus("loading");
+  async function loadDashboardData({ soft = false } = {}) {
+    if (!soft) {
+      setLoadStatus("loading");
+    }
     setStatusError("");
     setLoadMoreError("");
 
@@ -208,7 +210,13 @@ export default function Dashboard() {
 
         if (taskBundleResult.status === "fulfilled") {
           applyTaskBundle(taskBundleResult.value);
-        } else {
+          if (soft) {
+            syncSelectedTask([
+              ...taskBundleResult.value.activeTasks,
+              ...taskBundleResult.value.doneTasks,
+            ]);
+          }
+        } else if (!soft) {
           applyTaskBundle({});
         }
 
@@ -219,7 +227,9 @@ export default function Dashboard() {
           (result) => result.status === "rejected",
         );
 
-        setLoadStatus(hasCriticalError ? "error" : "success");
+        if (!soft || !hasCriticalError) {
+          setLoadStatus(hasCriticalError ? "error" : "success");
+        }
         return;
       }
 
@@ -233,13 +243,32 @@ export default function Dashboard() {
         role: String(userProfile.role || session.role || "").toLowerCase(),
       });
       applyTaskBundle(taskBundle);
+      if (soft) {
+        syncSelectedTask([...taskBundle.activeTasks, ...taskBundle.doneTasks]);
+      }
       setLoadStatus("success");
     } catch {
-      applyTaskBundle({});
-      setSkills([]);
-      setEmployees([]);
-      setLoadStatus("error");
+      if (!soft) {
+        applyTaskBundle({});
+        setSkills([]);
+        setEmployees([]);
+        setLoadStatus("error");
+      }
     }
+  }
+
+  function syncSelectedTask(tasks) {
+    setSelectedTask((current) => {
+      if (!current) {
+        return null;
+      }
+
+      return tasks.find((task) => task.id === current.id) || current;
+    });
+  }
+
+  function handleTaskUpdated() {
+    return loadDashboardData({ soft: true });
   }
 
   async function handleStatusFilterChange(nextFilter) {
@@ -488,89 +517,91 @@ export default function Dashboard() {
         </section>
       )}
 
-      <div className="task-status-filter" role="group" aria-label="Фильтр по статусу">
-        {TASK_STATUS_FILTERS.map((option) => (
-          <button
-            key={option.value}
-            className={`task-status-filter__button${statusFilter === option.value ? " is-active" : ""}`}
-            disabled={isFilteringTasks}
-            type="button"
-            onClick={() => handleStatusFilterChange(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+      <div className="tasks-panel">
+        <div className="task-status-filter" role="group" aria-label="Фильтр по статусу">
+          {TASK_STATUS_FILTERS.map((option) => (
+            <button
+              key={option.value}
+              className={`task-status-filter__button${statusFilter === option.value ? " is-active" : ""}`}
+              disabled={isFilteringTasks}
+              type="button"
+              onClick={() => handleStatusFilterChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
 
-      {isFilteringTasks && (
-        <p className="task-status-filter__loading">Обновляем список задач...</p>
-      )}
+        {isFilteringTasks && (
+          <p className="task-status-filter__loading">Обновляем список задач...</p>
+        )}
 
-      {loadMoreError && (
-        <p className="form-message form-message--error">{loadMoreError}</p>
-      )}
+        {loadMoreError && (
+          <p className="form-message form-message--error">{loadMoreError}</p>
+        )}
 
-      {showActiveSection && (
-        <section className="manager-tasks">
-          <h2>{activeSectionTitle}</h2>
-          {activeTasks.length === 0 && (
-            <p className="empty-state">Задач с таким статусом пока нет.</p>
-          )}
-          <section className="task-grid" aria-label={activeSectionTitle}>
-            {activeTasks.map((task) => (
-              <TaskCard
-                actionLabel={STATUS_ACTION_LABELS[task.status]}
-                isUpdating={updatingTaskId === task.id}
-                key={task.id}
-                onOpenDetail={setSelectedTask}
-                onStatusChange={!isManager ? handleStatusChange : undefined}
-                showStatusAction={!isManager}
-                task={task}
-              />
-            ))}
+        {showActiveSection && (
+          <section className="manager-tasks">
+            <h2>{activeSectionTitle}</h2>
+            {activeTasks.length === 0 && (
+              <p className="empty-state">Задач с таким статусом пока нет.</p>
+            )}
+            <section className="task-grid" aria-label={activeSectionTitle}>
+              {activeTasks.map((task) => (
+                <TaskCard
+                  actionLabel={STATUS_ACTION_LABELS[task.status]}
+                  isUpdating={updatingTaskId === task.id}
+                  key={task.id}
+                  onOpenDetail={setSelectedTask}
+                  onStatusChange={!isManager ? handleStatusChange : undefined}
+                  showStatusAction={!isManager}
+                  task={task}
+                />
+              ))}
+            </section>
           </section>
-        </section>
-      )}
+        )}
 
-      {showDoneSection && (
-        <section className="manager-tasks manager-tasks--done">
-          <h2>Выполненные задачи</h2>
-          {doneTasks.length === 0 ? (
-            <p className="empty-state">Выполненных задач пока нет.</p>
-          ) : (
-            <>
-              <p className="done-tasks-meta">
-                Показано {doneTasks.length}
-                {doneCount > 0 ? ` из ${doneCount}` : ""}
-              </p>
-              <section className="task-grid" aria-label="Выполненные задачи">
-                {doneTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    onOpenDetail={setSelectedTask}
-                    task={task}
-                  />
-                ))}
-              </section>
-            </>
-          )}
+        {showDoneSection && (
+          <section className="manager-tasks manager-tasks--done">
+            <h2>Выполненные задачи</h2>
+            {doneTasks.length === 0 ? (
+              <p className="empty-state">Выполненных задач пока нет.</p>
+            ) : (
+              <>
+                <p className="done-tasks-meta">
+                  Показано {doneTasks.length}
+                  {doneCount > 0 ? ` из ${doneCount}` : ""}
+                </p>
+                <section className="task-grid" aria-label="Выполненные задачи">
+                  {doneTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      onOpenDetail={setSelectedTask}
+                      task={task}
+                    />
+                  ))}
+                </section>
+              </>
+            )}
 
-          {doneHasMore && (
-            <div className="load-more">
-              <button
-                className="load-more__button"
-                disabled={isLoadingMoreDone}
-                type="button"
-                onClick={handleLoadMoreDone}
-              >
-                {isLoadingMoreDone
-                  ? "Загружаем..."
-                  : `Загрузить следующие ${nextBatchSize} задач`}
-              </button>
-            </div>
-          )}
-        </section>
-      )}
+            {doneHasMore && (
+              <div className="load-more">
+                <button
+                  className="load-more__button"
+                  disabled={isLoadingMoreDone}
+                  type="button"
+                  onClick={handleLoadMoreDone}
+                >
+                  {isLoadingMoreDone
+                    ? "Загружаем..."
+                    : `Загрузить следующие ${nextBatchSize} задач`}
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 
@@ -695,27 +726,30 @@ export default function Dashboard() {
     <>
       {isManager ? (
         <div className="manager-dashboard">
-          {heroSection}
-
-          <section className="summary summary--manager" aria-label="Сводка">
-            <article>
-              <span>Сотрудников</span>
-              <strong>{employees.length || teamMembers.length}</strong>
-            </article>
-            <div className="summary__main">
-              <article>
-                <span>Средний прогресс</span>
-                <strong>{averageProgress}%</strong>
-              </article>
-              <article>
-                <span>В работе</span>
-                <strong>{tasksInProgress}</strong>
-              </article>
-            </div>
-          </section>
-
           {managerSidebar}
-          {mainContent}
+
+          <div className="manager-dashboard__content">
+            {heroSection}
+
+            <section className="summary summary--manager" aria-label="Сводка">
+              <article>
+                <span>Сотрудников</span>
+                <strong>{employees.length || teamMembers.length}</strong>
+              </article>
+              <div className="summary__main">
+                <article>
+                  <span>Средний прогресс</span>
+                  <strong>{averageProgress}%</strong>
+                </article>
+                <article>
+                  <span>В работе</span>
+                  <strong>{tasksInProgress}</strong>
+                </article>
+              </div>
+            </section>
+
+            {mainContent}
+          </div>
         </div>
       ) : (
         <>
@@ -747,7 +781,7 @@ export default function Dashboard() {
         isOpen={Boolean(selectedTask)}
         task={selectedTask}
         onClose={() => setSelectedTask(null)}
-        onUpdated={loadDashboardData}
+        onUpdated={handleTaskUpdated}
       />
     </>
   );
