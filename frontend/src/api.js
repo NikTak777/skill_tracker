@@ -68,8 +68,8 @@ export async function getMe() {
   return response.data;
 }
 
-export async function getTasks() {
-  const response = await api.get("/tasks/");
+export async function getTasks(params = {}) {
+  const response = await api.get("/tasks/", { params });
   return response.data;
 }
 
@@ -79,6 +79,26 @@ export function getApiList(data) {
   }
 
   return data?.results || data?.tasks || data?.skills || data?.employees || data?.comments || data?.progress || [];
+}
+
+/** Нормализует ответ списка задач (массив или страница DRF). */
+export function normalizeTaskPage(data) {
+  if (Array.isArray(data)) {
+    return {
+      results: data,
+      count: data.length,
+      next: null,
+      previous: null,
+    };
+  }
+
+  const results = getApiList(data);
+  return {
+    results,
+    count: typeof data?.count === "number" ? data.count : results.length,
+    next: data?.next || null,
+    previous: data?.previous || null,
+  };
 }
 
 export function getLatestProgressPercent(progressData) {
@@ -109,9 +129,72 @@ export async function attachProgressToTasks(tasks) {
   );
 }
 
+/** Активные задачи без пагинации + первая страница выполненных (по 10). */
+export async function getDashboardTasks() {
+  const [todoData, inProgressData, doneData] = await Promise.all([
+    getTasks({ status: "todo" }),
+    getTasks({ status: "in_progress" }),
+    getTasks({ status: "done", page: 1 }),
+  ]);
+
+  const activeTasks = [
+    ...getApiList(todoData),
+    ...getApiList(inProgressData),
+  ];
+  const donePage = normalizeTaskPage(doneData);
+
+  return {
+    activeTasks: await attachProgressToTasks(activeTasks),
+    doneTasks: await attachProgressToTasks(donePage.results),
+    doneCount: donePage.count,
+    doneHasMore: Boolean(donePage.next),
+    doneNextPage: donePage.next ? 2 : null,
+  };
+}
+
+export async function getDoneTasksPage(page = 1) {
+  const donePage = normalizeTaskPage(await getTasks({ status: "done", page }));
+  return {
+    tasks: await attachProgressToTasks(donePage.results),
+    count: donePage.count,
+    hasMore: Boolean(donePage.next),
+    nextPage: donePage.next ? page + 1 : null,
+  };
+}
+
+/**
+ * filter: "all" | "todo" | "in_progress" | "done"
+ * Использует бэкенд ?status=... ; для done — пагинация по 10.
+ */
+export async function getTasksByStatusFilter(filter = "all") {
+  if (filter === "all") {
+    return getDashboardTasks();
+  }
+
+  if (filter === "done") {
+    const page = await getDoneTasksPage(1);
+    return {
+      activeTasks: [],
+      doneTasks: page.tasks,
+      doneCount: page.count,
+      doneHasMore: page.hasMore,
+      doneNextPage: page.nextPage,
+    };
+  }
+
+  const list = await attachProgressToTasks(getApiList(await getTasks({ status: filter })));
+  return {
+    activeTasks: list,
+    doneTasks: [],
+    doneCount: 0,
+    doneHasMore: false,
+    doneNextPage: null,
+  };
+}
+
 export async function getTasksWithProgress() {
-  const taskData = await getTasks();
-  return attachProgressToTasks(getApiList(taskData));
+  const { activeTasks, doneTasks } = await getDashboardTasks();
+  return [...activeTasks, ...doneTasks];
 }
 
 export async function getSkills() {
