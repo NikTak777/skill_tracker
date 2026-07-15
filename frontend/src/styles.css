@@ -962,6 +962,7 @@ h1 {
   flex-direction: column;
   min-height: 320px;
   min-width: 0;
+  overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1009,8 +1010,10 @@ h1 {
 .task-card__top,
 .task-card__meta {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .task-card__top span {
@@ -1018,14 +1021,19 @@ h1 {
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.2;
-  padding: 8px 16px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
 }
 
 .task-card__badge {
   border: 2px solid transparent;
   border-radius: 999px;
   display: inline-flex;
-  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .task-card__badge--skill {
@@ -1056,6 +1064,7 @@ h1 {
   color: var(--color-muted);
   line-height: 1.5;
   margin: 0 0 24px;
+  overflow-wrap: anywhere;
 }
 
 .progress-block {
