@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 
 import {
-  attachProgressToTasks,
   createEmployee,
   createSkill,
   createTask,
+  getDoneTasksPage,
   getEmployees,
   getMe,
   getSkills,
-  getTasks,
-  getTasksWithProgress,
+  getTasksByStatusFilter,
   updateTask,
 } from "../api.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
@@ -27,6 +26,12 @@ const STATUS_ACTION_LABELS = {
   todo: "Взять в работу",
   in_progress: "Завершить",
 };
+
+const TASK_STATUS_FILTERS = [
+  { value: "all", label: "Все" },
+  { value: "todo", label: "К выполнению" },
+  { value: "in_progress", label: "В работе" },
+];
 
 const INITIAL_FORM = {
   title: "",
@@ -119,7 +124,15 @@ export default function Dashboard() {
   });
   const [skills, setSkills] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [tasks, setTasks] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [activeTasks, setActiveTasks] = useState([]);
+  const [doneTasks, setDoneTasks] = useState([]);
+  const [doneCount, setDoneCount] = useState(0);
+  const [doneHasMore, setDoneHasMore] = useState(false);
+  const [doneNextPage, setDoneNextPage] = useState(null);
+  const [isLoadingMoreDone, setIsLoadingMoreDone] = useState(false);
+  const [isFilteringTasks, setIsFilteringTasks] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState("");
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [skillFormData, setSkillFormData] = useState(INITIAL_SKILL_FORM);
   const [employeeFormData, setEmployeeFormData] = useState(INITIAL_EMPLOYEE_FORM);
@@ -137,15 +150,50 @@ export default function Dashboard() {
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
 
+  function applyTaskBundle({
+    activeTasks: nextActive = [],
+    doneTasks: nextDone = [],
+    doneCount: nextDoneCount = 0,
+    doneHasMore: nextHasMore = false,
+    doneNextPage: nextPage = null,
+  }) {
+    setActiveTasks(nextActive);
+    setDoneTasks(nextDone);
+    setDoneCount(nextDoneCount);
+    setDoneHasMore(nextHasMore);
+    setDoneNextPage(nextPage);
+    setLoadMoreError("");
+  }
+
+  async function loadTaskLists(filter = statusFilter, { soft = false } = {}) {
+    if (soft) {
+      setIsFilteringTasks(true);
+    }
+    setLoadMoreError("");
+
+    try {
+      const bundle = await getTasksByStatusFilter(filter);
+      applyTaskBundle(bundle);
+    } catch {
+      applyTaskBundle({});
+      throw new Error("tasks_load_failed");
+    } finally {
+      if (soft) {
+        setIsFilteringTasks(false);
+      }
+    }
+  }
+
   async function loadDashboardData() {
     setLoadStatus("loading");
     setStatusError("");
+    setLoadMoreError("");
 
     try {
       if (isManager) {
-        const [profileResult, taskResult, skillResult, employeeResult] = await Promise.allSettled([
+        const [profileResult, taskBundleResult, skillResult, employeeResult] = await Promise.allSettled([
           getMe(),
-          getTasks(),
+          getTasksByStatusFilter(statusFilter),
           getSkills(),
           getEmployees(),
         ]);
@@ -158,14 +206,16 @@ export default function Dashboard() {
           });
         }
 
-        const taskList = taskResult.status === "fulfilled" ? getList(taskResult.value) : [];
-        const tasksWithProgress = await attachProgressToTasks(taskList);
+        if (taskBundleResult.status === "fulfilled") {
+          applyTaskBundle(taskBundleResult.value);
+        } else {
+          applyTaskBundle({});
+        }
 
-        setTasks(tasksWithProgress);
         setSkills(skillResult.status === "fulfilled" ? getList(skillResult.value) : []);
         setEmployees(employeeResult.status === "fulfilled" ? getList(employeeResult.value) : []);
 
-        const hasCriticalError = [profileResult, taskResult, skillResult].some(
+        const hasCriticalError = [profileResult, taskBundleResult, skillResult].some(
           (result) => result.status === "rejected",
         );
 
@@ -173,19 +223,57 @@ export default function Dashboard() {
         return;
       }
 
-      const [userProfile, taskList] = await Promise.all([getMe(), getTasksWithProgress()]);
+      const [userProfile, taskBundle] = await Promise.all([
+        getMe(),
+        getTasksByStatusFilter(statusFilter),
+      ]);
 
       setProfile({
         username: userProfile.username || session.username,
         role: String(userProfile.role || session.role || "").toLowerCase(),
       });
-      setTasks(taskList);
+      applyTaskBundle(taskBundle);
       setLoadStatus("success");
     } catch {
-      setTasks([]);
+      applyTaskBundle({});
       setSkills([]);
       setEmployees([]);
       setLoadStatus("error");
+    }
+  }
+
+  async function handleStatusFilterChange(nextFilter) {
+    if (nextFilter === statusFilter || isFilteringTasks) {
+      return;
+    }
+
+    setStatusFilter(nextFilter);
+
+    try {
+      await loadTaskLists(nextFilter, { soft: true });
+    } catch {
+      setLoadMoreError("Не удалось применить фильтр. Попробуйте ещё раз.");
+    }
+  }
+
+  async function handleLoadMoreDone() {
+    if (!doneHasMore || !doneNextPage || isLoadingMoreDone) {
+      return;
+    }
+
+    setIsLoadingMoreDone(true);
+    setLoadMoreError("");
+
+    try {
+      const page = await getDoneTasksPage(doneNextPage);
+      setDoneTasks((current) => [...current, ...page.tasks]);
+      setDoneCount(page.count);
+      setDoneHasMore(page.hasMore);
+      setDoneNextPage(page.nextPage);
+    } catch (error) {
+      setLoadMoreError(getApiErrorMessage(error, "Не удалось загрузить следующие задачи."));
+    } finally {
+      setIsLoadingMoreDone(false);
     }
   }
 
@@ -316,13 +404,26 @@ export default function Dashboard() {
     }
   }
 
+  const tasks = [...activeTasks, ...doneTasks];
   const averageProgress = tasks.length === 0
     ? 0
     : Math.round(tasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / tasks.length);
   const skillsCount = new Set(
     tasks.map((task) => (typeof task.skill === "string" ? task.skill : task.skill?.name)).filter(Boolean),
   ).size;
-  const tasksInProgress = tasks.filter((task) => task.status === "in_progress").length;
+  const tasksInProgress = activeTasks.filter((task) => task.status === "in_progress").length;
+  const remainingDone = Math.max(doneCount - doneTasks.length, 0);
+  const nextBatchSize = Math.min(10, remainingDone || 10);
+  const showActiveSection = statusFilter === "all" || statusFilter === "todo" || statusFilter === "in_progress";
+  const showDoneSection = statusFilter === "all" || statusFilter === "done";
+  const activeSectionTitle =
+    statusFilter === "todo"
+      ? "К выполнению"
+      : statusFilter === "in_progress"
+        ? "В работе"
+        : isManager
+          ? "Активные задачи"
+          : "Назначенные задачи";
 
   const teamRows = tasks.reduce((rows, task) => {
     const employeeName = getPersonName(task.employee) || "Не назначен";
@@ -387,23 +488,89 @@ export default function Dashboard() {
         </section>
       )}
 
-      <section className="manager-tasks">
-        <h2>{isManager ? "Все задачи" : "Назначенные задачи"}</h2>
-        {tasks.length === 0 && <p className="empty-state">Задач пока нет.</p>}
-        <section className="task-grid" aria-label="Список задач">
-          {tasks.map((task) => (
-            <TaskCard
-              actionLabel={STATUS_ACTION_LABELS[task.status]}
-              isUpdating={updatingTaskId === task.id}
-              key={task.id}
-              onOpenDetail={setSelectedTask}
-              onStatusChange={!isManager ? handleStatusChange : undefined}
-              showStatusAction={!isManager}
-              task={task}
-            />
-          ))}
+      <div className="task-status-filter" role="group" aria-label="Фильтр по статусу">
+        {TASK_STATUS_FILTERS.map((option) => (
+          <button
+            key={option.value}
+            className={`task-status-filter__button${statusFilter === option.value ? " is-active" : ""}`}
+            disabled={isFilteringTasks}
+            type="button"
+            onClick={() => handleStatusFilterChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {isFilteringTasks && (
+        <p className="task-status-filter__loading">Обновляем список задач...</p>
+      )}
+
+      {loadMoreError && (
+        <p className="form-message form-message--error">{loadMoreError}</p>
+      )}
+
+      {showActiveSection && (
+        <section className="manager-tasks">
+          <h2>{activeSectionTitle}</h2>
+          {activeTasks.length === 0 && (
+            <p className="empty-state">Задач с таким статусом пока нет.</p>
+          )}
+          <section className="task-grid" aria-label={activeSectionTitle}>
+            {activeTasks.map((task) => (
+              <TaskCard
+                actionLabel={STATUS_ACTION_LABELS[task.status]}
+                isUpdating={updatingTaskId === task.id}
+                key={task.id}
+                onOpenDetail={setSelectedTask}
+                onStatusChange={!isManager ? handleStatusChange : undefined}
+                showStatusAction={!isManager}
+                task={task}
+              />
+            ))}
+          </section>
         </section>
-      </section>
+      )}
+
+      {showDoneSection && (
+        <section className="manager-tasks manager-tasks--done">
+          <h2>Выполненные задачи</h2>
+          {doneTasks.length === 0 ? (
+            <p className="empty-state">Выполненных задач пока нет.</p>
+          ) : (
+            <>
+              <p className="done-tasks-meta">
+                Показано {doneTasks.length}
+                {doneCount > 0 ? ` из ${doneCount}` : ""}
+              </p>
+              <section className="task-grid" aria-label="Выполненные задачи">
+                {doneTasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    onOpenDetail={setSelectedTask}
+                    task={task}
+                  />
+                ))}
+              </section>
+            </>
+          )}
+
+          {doneHasMore && (
+            <div className="load-more">
+              <button
+                className="load-more__button"
+                disabled={isLoadingMoreDone}
+                type="button"
+                onClick={handleLoadMoreDone}
+              >
+                {isLoadingMoreDone
+                  ? "Загружаем..."
+                  : `Загрузить следующие ${nextBatchSize} задач`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 
@@ -557,7 +724,7 @@ export default function Dashboard() {
           <section className="summary" aria-label="Сводка">
             <article>
               <span>Всего задач</span>
-              <strong>{tasks.length}</strong>
+              <strong>{activeTasks.length + doneCount}</strong>
             </article>
             <article>
               <span>Средний прогресс</span>
