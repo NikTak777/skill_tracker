@@ -19,7 +19,6 @@ class UserRegisterSchema(BaseModel):
     username: str = Field(min_length=3, max_length=150)
     email: EmailStr | None = None
     password: str = Field(min_length=8)
-    role: Literal["manager", "employee"]
     first_name: str = ""
     last_name: str = ""
 
