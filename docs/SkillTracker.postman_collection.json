@@ -23,10 +23,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"demo_employee\",\n  \"email\": \"demo@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"employee\",\n  \"first_name\": \"Demo\",\n  \"last_name\": \"User\"\n}"
+              "raw": "{\n  \"username\": \"demo_employee\",\n  \"email\": \"demo@example.com\",\n  \"password\": \"password123\",\n  \"first_name\": \"Demo\",\n  \"last_name\": \"User\"\n}"
             },
             "url": "{{baseUrl}}/auth/register/",
-            "description": "Публичная регистрация пользователя."
+            "description": "Публичная регистрация: всегда создаёт employee. Поле role в теле не передавать — роль выставляет сервер."
           }
         },
         {
