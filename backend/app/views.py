@@ -270,3 +270,7 @@ class EmployeeListView(generics.ListCreateAPIView):
             UserReadSerializer(user).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class NotificationListView(generics.ListCreateAPIView):
+    pass

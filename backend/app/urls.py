@@ -10,6 +10,7 @@ from .views import (
     CommentViewSet,
     SkillViewSet,
     EmployeeListView,
+    NotificationListView
 )
 
 router = DefaultRouter()
@@ -24,4 +25,5 @@ urlpatterns = [
     path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("employees/", EmployeeListView.as_view(), name="employees"),
+    path("notification/", NotificationListView.as_view(), name="notifications"),
 ] + router.urls

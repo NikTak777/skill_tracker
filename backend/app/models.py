@@ -92,12 +92,12 @@ class Notification(models.Model):
         progress = "progress", "Progress"
         status_change = "status_change", "Status Change"
 
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_notifications")
     type = models.CharField(max_length=20, choices=Type.choices)
     title = models.CharField(max_length=100)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="authored_notifications")
 
     class Meta:
         ordering = ["created_at"]
