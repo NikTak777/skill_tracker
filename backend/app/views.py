@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Task, User, Progress, Comment, Skill
+from .models import Task, User, Progress, Comment, Skill, Notification
 from .permissions import IsManager, IsTaskManager, IsTaskParticipant, IsEmployee
 from .filters import TaskFilter
 from .pagination import DoneTaskPagination
@@ -30,6 +30,7 @@ from .serializers import (
     CommentCreateSerializer,
     CommentReadSerializer,
     SkillSerializer,
+    NotificationReadSerializer
 )
 
 
@@ -99,7 +100,28 @@ class TaskViewSet(viewsets.ModelViewSet):
         error_response = validate_request(TaskCreateSchema, request.data)
         if error_response:
             return error_response
-        return super().create(request, *args, **kwargs)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        task = serializer.save()
+
+        title = f"Новая задача от {task.manager.get_full_name()}: {task.title}"
+        if len(title) > 100:
+            title = title[:97] + "..."
+
+        Notification.objects.create(
+            recipient=task.employee,
+            author=request.user,
+            type=Notification.Type.task_assigned,
+            title=title,
+        )
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            TaskReadSerializer(task).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
 
     def update(self, request, *args, **kwargs):
         error_response = validate_request(TaskUpdateSchema, request.data)
@@ -273,4 +295,20 @@ class EmployeeListView(generics.ListCreateAPIView):
 
 
 class NotificationListView(generics.ListCreateAPIView):
-    pass
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = NotificationReadSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Notification.objects.filter(
+            recipient=user
+        ).select_related("recipient", "author")
+
+        is_read = self.request.query_params.get("is_read")
+        if is_read is not None:
+            if is_read.lower() in ("true", "1"):
+                qs = qs.filter(is_read=True)
+            elif is_read.lower() in ("false", "0"):
+                qs = qs.filter(is_read=False)
+
+        return qs
