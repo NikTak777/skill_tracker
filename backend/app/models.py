@@ -82,3 +82,25 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.author.username} on {self.task.title}"
+
+
+# Модель уведомлений
+class Notification(models.Model):
+    class Type(models.TextChoices):
+        task_assigned = "task_assigned", "Task Assigned"
+        comment = "comment", "Comment"
+        progress = "progress", "Progress"
+        status_change = "status_change", "Status Change"
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_notifications")
+    type = models.CharField(max_length=20, choices=Type.choices)
+    title = models.CharField(max_length=100)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="authored_notifications")
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Notification by {self.recipient.username} on {self.title}"

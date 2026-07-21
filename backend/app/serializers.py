@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User, Skill, Task, Progress, Comment
+from .models import User, Skill, Task, Progress, Comment, Notification
 
 
 # Для пользователя
@@ -130,3 +130,20 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Требуется авторизованный пользователь.")
         validated_data["author"] = request.user
         return super().create(validated_data)
+
+
+class NotificationReadSerializer(serializers.ModelSerializer):
+    author = UserReadSerializer(read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            "id",
+            "type",
+            "title",
+            "is_read",
+            "created_at",
+            "author",
+            "recipient",
+        ]
+        read_only_fields = fields
