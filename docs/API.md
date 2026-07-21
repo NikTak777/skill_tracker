@@ -112,7 +112,7 @@ Content-Type: application/json
 
 ### Регистрация
 
-Создаёт нового пользователя.
+Создаёт нового пользователя с ролью `employee`. Поле `role` в теле запроса передавать не нужно — API выставляет его сам. Если клиент всё же пришлёт `role` (в том числе `manager`), значение игнорируется: публичная регистрация всегда создаёт сотрудника. Учётные записи `manager` создаются вне этого эндпоинта (админка / демо-данные; создание руководителей через API — отдельно).
 
 | | |
 |---|---|
@@ -127,7 +127,6 @@ Content-Type: application/json
   "username": "anna_employee",
   "email": "anna@example.com",
   "password": "password123",
-  "role": "employee",
   "first_name": "Anna",
   "last_name": "Petrova"
 }
@@ -138,7 +137,6 @@ Content-Type: application/json
 | `username` | string | да | 3–150 символов |
 | `email` | string | нет | Валидный email |
 | `password` | string | да | Минимум 8 символов |
-| `role` | string | да | `manager` или `employee` |
 | `first_name` | string | нет | Имя |
 | `last_name` | string | нет | Фамилия |
 
@@ -838,7 +836,7 @@ POST /api/comments/        → обратная связь
 
 | Эндпоинт | manager | employee |
 |----------|---------|----------|
-| `POST /api/auth/register/` | ✅ | ✅ |
+| `POST /api/auth/register/` | без auth; всегда создаёт `employee` | без auth; всегда создаёт `employee` |
 | `POST /api/auth/token/` | ✅ | ✅ |
 | `GET /api/auth/me/` | ✅ | ✅ |
 | `GET /api/employees/` | ✅ | ❌ |

@@ -24,6 +24,7 @@ class UserWriteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop("password")
+        validated_data["role"] = User.Role.EMPLOYEE
         return User.objects.create_user(password=password, **validated_data)
 
 
