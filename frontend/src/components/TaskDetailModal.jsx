@@ -119,14 +119,20 @@ export default function TaskDetailModal({
     setIsSubmitting(true);
 
     try {
+      const percent = Number(progressForm.percent);
+
       await createProgress({
         task: task.id,
-        percent: Number(progressForm.percent),
+        percent,
         note: progressForm.note.trim(),
       });
 
       setProgressForm(INITIAL_PROGRESS_FORM);
-      setFormStatus("Прогресс сохранён.");
+      setFormStatus(
+        percent === 100
+          ? "Прогресс 100%. Задача автоматически завершена."
+          : "Прогресс сохранён.",
+      );
       await loadProgress();
       onUpdated?.();
     } catch (error) {

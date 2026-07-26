@@ -238,6 +238,16 @@ export async function getProgress(taskId) {
 
 export async function createProgress(progressData) {
   const response = await api.post("/progress/", progressData);
+  const percent = Number(progressData.percent);
+
+  if (percent === 100 && progressData.task) {
+    try {
+      await updateTask(progressData.task, { status: "done" });
+    } catch {
+      // Прогресс уже сохранён; статус обновим при следующем действии.
+    }
+  }
+
   return response.data;
 }
 
