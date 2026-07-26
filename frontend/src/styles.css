@@ -338,6 +338,7 @@ h1 {
 .manager-dashboard > .dashboard-sidebar {
   grid-column: 1;
   grid-row: 1;
+  max-width: var(--sidebar-width);
 }
 
 .manager-dashboard__content {
@@ -524,6 +525,8 @@ h1 {
 .dashboard-sidebar {
   display: grid;
   gap: 16px;
+  min-width: 0;
+  width: 100%;
 }
 
 .dashboard-main {
@@ -549,6 +552,8 @@ h1 {
 .manager-forms {
   display: grid;
   gap: 24px;
+  min-width: 0;
+  width: 100%;
 }
 
 .manager-actions {
@@ -747,11 +752,15 @@ h1 {
   background: var(--color-info-soft);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
+  box-sizing: border-box;
   color: var(--color-primary-dark);
   font-size: 14px;
   font-weight: 700;
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 12px;
+  word-break: break-word;
 }
 
 .form-message--error {
@@ -762,8 +771,18 @@ h1 {
 
 .manager-form {
   align-self: start;
+  box-sizing: border-box;
   display: grid;
   gap: 18px;
+  min-width: 0;
+  width: 100%;
+}
+
+.manager-form__feedback {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  width: 100%;
 }
 
 .manager-form textarea {

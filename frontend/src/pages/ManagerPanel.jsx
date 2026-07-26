@@ -320,8 +320,10 @@ export default function ManagerPanel() {
               </p>
             )}
 
-            {formError && <p className="form-message form-message--error">{formError}</p>}
-            {formStatus && <p className="form-message">{formStatus}</p>}
+            <div className="manager-form__feedback">
+              {formError && <p className="form-message form-message--error">{formError}</p>}
+              {formStatus && <p className="form-message">{formStatus}</p>}
+            </div>
 
             <button type="submit" disabled={isSubmitting || employees.length === 0}>
               {isSubmitting ? "Создаем..." : "Создать задачу"}
@@ -352,8 +354,10 @@ export default function ManagerPanel() {
               />
             </label>
 
-            {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
-            {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
+            <div className="manager-form__feedback">
+              {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
+              {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
+            </div>
 
             <button type="submit" disabled={isCreatingSkill}>
               {isCreatingSkill ? "Сохраняем..." : "Добавить навык"}

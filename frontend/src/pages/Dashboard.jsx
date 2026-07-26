@@ -618,8 +618,10 @@ export default function Dashboard() {
           <p className="form-message form-message--error">Сначала добавьте сотрудника.</p>
         )}
 
-        {formError && <p className="form-message form-message--error">{formError}</p>}
-        {formStatus && <p className="form-message">{formStatus}</p>}
+        <div className="manager-form__feedback">
+          {formError && <p className="form-message form-message--error">{formError}</p>}
+          {formStatus && <p className="form-message">{formStatus}</p>}
+        </div>
 
         <button type="submit" disabled={isSubmitting || employees.length === 0}>
           {isSubmitting ? "Создаем..." : "Создать задачу"}
@@ -639,8 +641,10 @@ export default function Dashboard() {
           <textarea name="description" value={skillFormData.description} onChange={updateSkillField} />
         </label>
 
-        {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
-        {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
+        <div className="manager-form__feedback">
+          {skillFormError && <p className="form-message form-message--error">{skillFormError}</p>}
+          {skillFormStatus && <p className="form-message">{skillFormStatus}</p>}
+        </div>
 
         <button type="submit" disabled={isCreatingSkill}>
           {isCreatingSkill ? "Сохраняем..." : "Добавить навык"}
@@ -677,8 +681,10 @@ export default function Dashboard() {
           />
         </label>
 
-        {employeeFormError && <p className="form-message form-message--error">{employeeFormError}</p>}
-        {employeeFormStatus && <p className="form-message">{employeeFormStatus}</p>}
+        <div className="manager-form__feedback">
+          {employeeFormError && <p className="form-message form-message--error">{employeeFormError}</p>}
+          {employeeFormStatus && <p className="form-message">{employeeFormStatus}</p>}
+        </div>
 
         <button type="submit" disabled={isCreatingEmployee}>
           {isCreatingEmployee ? "Сохраняем..." : "Добавить сотрудника"}
