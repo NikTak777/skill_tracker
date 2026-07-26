@@ -46,6 +46,12 @@ const PARTIAL_TRANSLATIONS = [
   [/input should be less than or equal to (\d+)\.?/i, "Значение должно быть не больше $1."],
 ];
 
+export const SERVER_ERROR_MESSAGE = "Ошибка сервера. Попробуйте позже.";
+export const NETWORK_ERROR_MESSAGE = "Сервер недоступен. Попробуйте зайти позже.";
+export const VALIDATION_ERROR_MESSAGE = "Ошибка валидации. Проверьте введённые данные.";
+
+const SERVER_DUMP_PATTERN = /traceback|exception type|internal server error|<!doctype|<html|django\.|integrityerror|programming error|syntaxerror|unexpected token|\sat line \d+/i;
+
 function translateMessage(message) {
   if (typeof message !== "string") {
     return "";
@@ -69,13 +75,78 @@ function translateMessage(message) {
   return trimmed;
 }
 
+function looksLikeServerDump(message) {
+  if (typeof message !== "string") {
+    return false;
+  }
+
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  if (trimmed.length > 240) {
+    return true;
+  }
+
+  return SERVER_DUMP_PATTERN.test(trimmed);
+}
+
+function isUserFacingMessage(message) {
+  if (!message) {
+    return false;
+  }
+
+  const trimmed = message.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  if (MESSAGE_TRANSLATIONS[trimmed]) {
+    return true;
+  }
+
+  if (/[а-яё]/i.test(trimmed)) {
+    return true;
+  }
+
+  return PARTIAL_TRANSLATIONS.some(([pattern]) => pattern.test(trimmed));
+}
+
+function sanitizeMessage(message, fallback, { validation = false } = {}) {
+  if (!message) {
+    if (validation) {
+      return VALIDATION_ERROR_MESSAGE;
+    }
+
+    return fallback;
+  }
+
+  if (looksLikeServerDump(message)) {
+    return SERVER_ERROR_MESSAGE;
+  }
+
+  const translated = translateMessage(message);
+  if (isUserFacingMessage(translated)) {
+    return translated;
+  }
+
+  if (validation) {
+    return VALIDATION_ERROR_MESSAGE;
+  }
+
+  return fallback;
+}
+
 function getFieldLabel(field) {
   return FIELD_LABELS[field] || field;
 }
 
 function formatFieldValue(value) {
   if (Array.isArray(value)) {
-    return value.map((item) => translateMessage(String(item))).join(" ");
+    return value
+      .map((item) => sanitizeMessage(String(item), VALIDATION_ERROR_MESSAGE, { validation: true }))
+      .join(" ");
   }
 
   if (value && typeof value === "object") {
@@ -84,7 +155,7 @@ function formatFieldValue(value) {
       .join(" ");
   }
 
-  return translateMessage(String(value));
+  return sanitizeMessage(String(value), VALIDATION_ERROR_MESSAGE, { validation: true });
 }
 
 function formatFieldErrors(data) {
@@ -99,43 +170,62 @@ function formatPydanticErrors(errors) {
     .map((entry) => {
       const field = entry.loc?.[entry.loc.length - 1];
       const label = getFieldLabel(String(field || "Ошибка"));
-      return `${label}: ${translateMessage(entry.msg || "Некорректное значение.")}`;
+      const message = sanitizeMessage(entry.msg || "Некорректное значение.", VALIDATION_ERROR_MESSAGE, {
+        validation: true,
+      });
+      return `${label}: ${message}`;
     })
     .join(" ");
 }
 
-export default function getApiErrorMessage(error, fallback = "Не удалось выполнить запрос.") {
-  const data = error?.response?.data;
-
-  if (!data) {
-    if (!error?.response) {
-      return "Сервер недоступен. Попробуйте зайти позже.";
-    }
-
-    return fallback;
-  }
-
+function extractMessageFromData(data, fallback, { validation = false } = {}) {
   if (typeof data === "string") {
-    return translateMessage(data) || fallback;
+    return sanitizeMessage(data, fallback, { validation });
   }
 
   if (data.detail) {
     if (Array.isArray(data.detail)) {
-      const translated = data.detail.map((item) => translateMessage(String(item))).filter(Boolean);
-      return translated.join(" ") || fallback;
+      const translated = data.detail
+        .map((item) => sanitizeMessage(String(item), fallback, { validation }))
+        .filter(Boolean);
+      return translated.join(" ") || (validation ? VALIDATION_ERROR_MESSAGE : fallback);
     }
 
-    return translateMessage(String(data.detail)) || fallback;
+    return sanitizeMessage(String(data.detail), fallback, { validation });
   }
 
   if (Array.isArray(data.errors)) {
-    return formatPydanticErrors(data.errors) || "Ошибка валидации. Проверьте введённые данные.";
+    return formatPydanticErrors(data.errors) || VALIDATION_ERROR_MESSAGE;
   }
 
   if (data.errors && typeof data.errors === "object") {
-    return formatFieldErrors(data.errors) || "Ошибка валидации. Проверьте введённые данные.";
+    return formatFieldErrors(data.errors) || VALIDATION_ERROR_MESSAGE;
   }
 
   const fieldErrors = formatFieldErrors(data);
-  return fieldErrors || fallback;
+  if (fieldErrors) {
+    return fieldErrors;
+  }
+
+  return validation ? VALIDATION_ERROR_MESSAGE : fallback;
+}
+
+export default function getApiErrorMessage(error, fallback = SERVER_ERROR_MESSAGE) {
+  const status = error?.response?.status;
+  const data = error?.response?.data;
+
+  if (!error?.response) {
+    return NETWORK_ERROR_MESSAGE;
+  }
+
+  if (status >= 500) {
+    return SERVER_ERROR_MESSAGE;
+  }
+
+  if (!data) {
+    return fallback;
+  }
+
+  const isValidationStatus = status >= 400 && status < 500;
+  return extractMessageFromData(data, fallback, { validation: isValidationStatus });
 }
