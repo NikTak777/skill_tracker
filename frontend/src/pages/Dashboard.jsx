@@ -4,6 +4,7 @@ import {
   createEmployee,
   createSkill,
   createTask,
+  getDashboardTasks,
   getDoneTasksPage,
   getEmployees,
   getMe,
@@ -89,6 +90,9 @@ export default function Dashboard() {
   const [skills, setSkills] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [overviewActiveTasks, setOverviewActiveTasks] = useState([]);
+  const [overviewDoneTasks, setOverviewDoneTasks] = useState([]);
+  const [overviewDoneCount, setOverviewDoneCount] = useState(0);
   const [activeTasks, setActiveTasks] = useState([]);
   const [doneTasks, setDoneTasks] = useState([]);
   const [doneCount, setDoneCount] = useState(0);
@@ -114,6 +118,16 @@ export default function Dashboard() {
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
 
+  function applyOverviewBundle({
+    activeTasks: nextActive = [],
+    doneTasks: nextDone = [],
+    doneCount: nextDoneCount = 0,
+  } = {}) {
+    setOverviewActiveTasks(nextActive);
+    setOverviewDoneTasks(nextDone);
+    setOverviewDoneCount(nextDoneCount);
+  }
+
   function applyTaskBundle({
     activeTasks: nextActive = [],
     doneTasks: nextDone = [],
@@ -127,6 +141,24 @@ export default function Dashboard() {
     setDoneHasMore(nextHasMore);
     setDoneNextPage(nextPage);
     setLoadMoreError("");
+  }
+
+  async function loadOverviewAndFiltered(filter = statusFilter) {
+    if (filter === "all") {
+      const bundle = await getDashboardTasks();
+      applyOverviewBundle(bundle);
+      applyTaskBundle(bundle);
+      return bundle;
+    }
+
+    const [overviewBundle, filterBundle] = await Promise.all([
+      getDashboardTasks(),
+      getTasksByStatusFilter(filter),
+    ]);
+
+    applyOverviewBundle(overviewBundle);
+    applyTaskBundle(filterBundle);
+    return filterBundle;
   }
 
   async function loadTaskLists(filter = statusFilter, { soft = false } = {}) {
@@ -157,9 +189,9 @@ export default function Dashboard() {
 
     try {
       if (isManager) {
-        const [profileResult, taskBundleResult, skillResult, employeeResult] = await Promise.allSettled([
+        const [profileResult, tasksResult, skillResult, employeeResult] = await Promise.allSettled([
           getMe(),
-          getTasksByStatusFilter(statusFilter),
+          loadOverviewAndFiltered(statusFilter),
           getSkills(),
           getEmployees(),
         ]);
@@ -172,22 +204,20 @@ export default function Dashboard() {
           });
         }
 
-        if (taskBundleResult.status === "fulfilled") {
-          applyTaskBundle(taskBundleResult.value);
-          if (soft) {
-            syncSelectedTask([
-              ...taskBundleResult.value.activeTasks,
-              ...taskBundleResult.value.doneTasks,
-            ]);
-          }
-        } else if (!soft) {
+        if (tasksResult.status === "rejected" && !soft) {
+          applyOverviewBundle({});
           applyTaskBundle({});
+        } else if (soft && tasksResult.status === "fulfilled") {
+          syncSelectedTask([
+            ...tasksResult.value.activeTasks,
+            ...tasksResult.value.doneTasks,
+          ]);
         }
 
         setSkills(skillResult.status === "fulfilled" ? getList(skillResult.value) : []);
         setEmployees(employeeResult.status === "fulfilled" ? getList(employeeResult.value) : []);
 
-        const hasCriticalError = [profileResult, taskBundleResult, skillResult].some(
+        const hasCriticalError = [profileResult, tasksResult, skillResult].some(
           (result) => result.status === "rejected",
         );
 
@@ -199,20 +229,20 @@ export default function Dashboard() {
 
       const [userProfile, taskBundle] = await Promise.all([
         getMe(),
-        getTasksByStatusFilter(statusFilter),
+        loadOverviewAndFiltered(statusFilter),
       ]);
 
       setProfile({
         username: userProfile.username || session.username,
         role: String(userProfile.role || session.role || "").toLowerCase(),
       });
-      applyTaskBundle(taskBundle);
       if (soft) {
         syncSelectedTask([...taskBundle.activeTasks, ...taskBundle.doneTasks]);
       }
       setLoadStatus("success");
     } catch {
       if (!soft) {
+        applyOverviewBundle({});
         applyTaskBundle({});
         setSkills([]);
         setEmployees([]);
@@ -398,14 +428,14 @@ export default function Dashboard() {
     }
   }
 
-  const tasks = [...activeTasks, ...doneTasks];
-  const averageProgress = tasks.length === 0
+  const overviewTasks = [...overviewActiveTasks, ...overviewDoneTasks];
+  const averageProgress = overviewTasks.length === 0
     ? 0
-    : Math.round(tasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / tasks.length);
+    : Math.round(overviewTasks.reduce((sum, task) => sum + getTaskProgress(task), 0) / overviewTasks.length);
   const skillsCount = new Set(
-    tasks.map((task) => (typeof task.skill === "string" ? task.skill : task.skill?.name)).filter(Boolean),
+    overviewTasks.map((task) => (typeof task.skill === "string" ? task.skill : task.skill?.name)).filter(Boolean),
   ).size;
-  const tasksInProgress = activeTasks.filter((task) => task.status === "in_progress").length;
+  const tasksInProgress = overviewActiveTasks.filter((task) => task.status === "in_progress").length;
   const remainingDone = Math.max(doneCount - doneTasks.length, 0);
   const nextBatchSize = Math.min(10, remainingDone || 10);
   const showActiveSection = statusFilter === "all" || statusFilter === "todo" || statusFilter === "in_progress";
@@ -419,7 +449,7 @@ export default function Dashboard() {
           ? "Активные задачи"
           : "Назначенные задачи";
 
-  const teamRows = tasks.reduce((rows, task) => {
+  const teamRows = overviewTasks.reduce((rows, task) => {
     const employeeName = getPersonName(task.employee) || "Не назначен";
     const current = rows.get(employeeName) || {
       name: employeeName,
@@ -729,7 +759,7 @@ export default function Dashboard() {
           <section className="summary" aria-label="Сводка">
             <article>
               <span>Всего задач</span>
-              <strong>{activeTasks.length + doneCount}</strong>
+              <strong>{overviewActiveTasks.length + overviewDoneCount}</strong>
             </article>
             <article>
               <span>Средний прогресс</span>
