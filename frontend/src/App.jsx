@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { GuestRoute, PrivateRoute } from "./components/RouteGuards.jsx";
+import { NotificationProvider } from "./context/NotificationContext.jsx";
 import { SessionProvider } from "./context/SessionContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import AppLayout from "./layouts/AppLayout.jsx";
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <SessionProvider>
+        <NotificationProvider>
         <Routes>
           <Route element={<AuthLayout />}>
             <Route
@@ -41,6 +43,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>
+        </NotificationProvider>
       </SessionProvider>
     </ThemeProvider>
   );
