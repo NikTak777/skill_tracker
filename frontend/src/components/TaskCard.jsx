@@ -1,5 +1,5 @@
 import ProgressBar from "./ProgressBar.jsx";
-import { getTaskProgress } from "../utils/taskProgress.js";
+import { getTaskProgress, isTaskCompleted } from "../utils/taskProgress.js";
 
 
 function getPersonName(person) {
@@ -72,7 +72,7 @@ export default function TaskCard({
         <span>Срок: {dueDate}</span>
       </div>
       <div className="task-card__actions">
-        {showStatusAction && actionLabel && onStatusChange && (
+        {showStatusAction && actionLabel && onStatusChange && !isTaskCompleted(task) && (
           <button
             className="task-card__action"
             disabled={isUpdating}

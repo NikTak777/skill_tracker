@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { createProgress, getProgress } from "../api.js";
 import getApiErrorMessage from "../utils/getApiErrorMessage.js";
-import { getTaskProgress } from "../utils/taskProgress.js";
+import { getTaskProgress, isTaskCompleted } from "../utils/taskProgress.js";
 import CommentSection from "./CommentSection.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 import ProgressBar from "./ProgressBar.jsx";
@@ -114,6 +114,12 @@ export default function TaskDetailModal({
 
   async function handleProgressSubmit(event) {
     event.preventDefault();
+
+    if (isTaskCompleted(task)) {
+      setFormError("Завершённую задачу нельзя изменить.");
+      return;
+    }
+
     setFormError("");
     setFormStatus("");
     setIsSubmitting(true);
@@ -142,6 +148,7 @@ export default function TaskDetailModal({
     }
   }
 
+  const isLocked = isTaskCompleted(task);
   const latestProgress = getTaskProgress(task);
   const skill = getSkillName(task.skill);
   const employee = getPersonName(task.employee) || task.owner;
@@ -175,6 +182,10 @@ export default function TaskDetailModal({
 
         <p className="task-modal__description">{task.description || "Описание не указано."}</p>
 
+        {isLocked && (
+          <p className="form-message">Задача завершена. Изменения недоступны.</p>
+        )}
+
         <div className="task-modal__people">
           <span>Сотрудник: {employee || "Не назначен"}</span>
           {manager && <span>Руководитель: {manager}</span>}
@@ -206,7 +217,7 @@ export default function TaskDetailModal({
             </ul>
           )}
 
-          {canAddProgress && (
+          {canAddProgress && !isLocked && (
             <form className="progress-form" onSubmit={handleProgressSubmit}>
               <label>
                 Процент выполнения
@@ -241,7 +252,7 @@ export default function TaskDetailModal({
           )}
         </section>
 
-        <CommentSection taskId={task.id} />
+        <CommentSection readOnly={isLocked} taskId={task.id} />
       </div>
     </div>
   );

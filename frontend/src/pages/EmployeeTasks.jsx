@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { getMe, getTasksWithProgress, updateTask } from "../api.js";
 import getApiErrorMessage from "../utils/getApiErrorMessage.js";
-import { getTaskProgress } from "../utils/taskProgress.js";
+import { getTaskProgress, isTaskCompleted } from "../utils/taskProgress.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
@@ -62,6 +62,10 @@ export default function EmployeeTasks() {
   }, [session.role, session.username]);
 
   async function handleStatusChange(task) {
+    if (isTaskCompleted(task)) {
+      return;
+    }
+
     const nextStatus = STATUS_NEXT[task.status];
     if (!nextStatus) {
       return;
