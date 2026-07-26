@@ -267,6 +267,206 @@ body {
   color: var(--color-on-primary);
 }
 
+.notification-inbox {
+  position: relative;
+}
+
+.notification-inbox__button {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: 44px;
+}
+
+.notification-inbox__button:hover,
+.notification-inbox__button.is-open {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.notification-inbox__icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.notification-inbox__badge {
+  align-items: center;
+  background: var(--color-danger, #c0392b);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  justify-content: center;
+  min-width: 18px;
+  padding: 2px 5px;
+  position: absolute;
+  right: -4px;
+  top: -4px;
+}
+
+.notification-inbox__panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  max-height: min(70vh, 520px);
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  width: min(380px, calc(100vw - 32px));
+  z-index: 1200;
+}
+
+.notification-inbox__panel.is-open {
+  opacity: 1;
+  overflow: auto;
+  padding: 16px;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.notification-inbox__header {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.notification-inbox__header h2 {
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 4px 0 0;
+}
+
+.notification-inbox__header-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.notification-inbox__text-button,
+.notification-inbox__more {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.notification-inbox__text-button:hover,
+.notification-inbox__more:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.notification-inbox__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 24px;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 32px;
+}
+
+.notification-inbox__empty {
+  color: var(--color-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+.notification-inbox__list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-inbox__item {
+  background: var(--color-input-bg, var(--color-bg));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.notification-inbox__item.is-unread {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.notification-inbox__item-top {
+  align-items: start;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.notification-inbox__item-top strong {
+  font-size: 14px;
+}
+
+.notification-inbox__item-top span {
+  color: var(--color-muted);
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.notification-inbox__item p {
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notification-inbox__item-link {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notification-inbox__more {
+  width: 100%;
+}
+
 .hero {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

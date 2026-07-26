@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 
 import { clearTokens } from "../api.js";
-import { useSession } from "../context/SessionContext.jsx";
+import NotificationInbox from "./NotificationInbox.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
 
 
@@ -29,6 +29,8 @@ export default function Navbar({ onNavigate, session, onLogout }) {
 
       <div className="top-nav__actions">
         <ThemeToggle />
+
+        {session.isAuthenticated && <NotificationInbox />}
 
         <div className={`session-badge ${session.isAuthenticated ? "active" : ""}`}>
           <div>
