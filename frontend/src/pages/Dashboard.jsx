@@ -12,6 +12,7 @@ import {
   updateTask,
 } from "../api.js";
 import getApiErrorMessage from "../utils/getApiErrorMessage.js";
+import { getTaskProgress } from "../utils/taskProgress.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
@@ -58,18 +59,6 @@ function getList(data) {
   }
 
   return data?.results || data?.tasks || data?.skills || data?.employees || [];
-}
-
-function getTaskProgress(task) {
-  if (typeof task.progress === "number") {
-    return task.progress;
-  }
-
-  if (Array.isArray(task.progress_entries) && task.progress_entries.length > 0) {
-    return task.progress_entries[0].percent;
-  }
-
-  return 0;
 }
 
 function getPersonName(person) {
@@ -397,7 +386,7 @@ export default function Dashboard() {
 
     try {
       await updateTask(task.id, { status: nextStatus });
-      await loadDashboardData();
+      await loadDashboardData({ soft: true });
     } catch (error) {
       setStatusError(getApiErrorMessage(error, "Не удалось обновить статус задачи."));
     } finally {

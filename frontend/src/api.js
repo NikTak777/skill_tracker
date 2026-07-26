@@ -1,5 +1,7 @@
 import axios from "axios";
 
+import { withDoneProgress, withDoneProgressList } from "./utils/taskProgress.js";
+
 
 const ACCESS_TOKEN_KEY = "skilltracker_access_token";
 const REFRESH_TOKEN_KEY = "skilltracker_refresh_token";
@@ -111,7 +113,7 @@ export function getLatestProgressPercent(progressData) {
 }
 
 export async function attachProgressToTasks(tasks) {
-  return Promise.all(
+  const tasksWithProgress = await Promise.all(
     tasks.map(async (task) => {
       try {
         const progressData = await getProgress(task.id);
@@ -127,6 +129,8 @@ export async function attachProgressToTasks(tasks) {
       }
     }),
   );
+
+  return withDoneProgressList(tasksWithProgress);
 }
 
 /** Активные задачи без пагинации + первая страница выполненных (по 10). */
@@ -224,7 +228,7 @@ export async function createTask(taskData) {
 
 export async function updateTask(taskId, taskData) {
   const response = await api.patch(`/tasks/${taskId}/`, taskData);
-  return response.data;
+  return withDoneProgress(response.data, taskData.status);
 }
 
 export async function getProgress(taskId) {
