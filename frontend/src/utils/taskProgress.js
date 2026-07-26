@@ -1,3 +1,7 @@
+export function isTaskCompleted(task) {
+  return task?.status === "done";
+}
+
 export function getTaskProgress(task) {
   if (task?.status === "done") {
     return 100;

@@ -40,7 +40,7 @@ function formatDate(value) {
   });
 }
 
-export default function CommentSection({ taskId }) {
+export default function CommentSection({ readOnly = false, taskId }) {
   const [comments, setComments] = useState([]);
   const [text, setText] = useState("");
   const [loadStatus, setLoadStatus] = useState("loading");
@@ -70,6 +70,11 @@ export default function CommentSection({ taskId }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (readOnly) {
+      return;
+    }
+
     setErrorMessage("");
     setStatusMessage("");
     setIsSubmitting(true);
@@ -117,24 +122,28 @@ export default function CommentSection({ taskId }) {
         ))}
       </ul>
 
-      <form className="comment-form" onSubmit={handleSubmit}>
-        <label>
-          Новый комментарий
-          <textarea
-            placeholder="Опишите прогресс, вопрос или результат"
-            required
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-          />
-        </label>
+      {readOnly ? (
+        <p className="form-message">Задача завершена. Новые комментарии недоступны.</p>
+      ) : (
+        <form className="comment-form" onSubmit={handleSubmit}>
+          <label>
+            Новый комментарий
+            <textarea
+              placeholder="Опишите прогресс, вопрос или результат"
+              required
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
+          </label>
 
-        {errorMessage && <p className="form-message form-message--error">{errorMessage}</p>}
-        {statusMessage && <p className="form-message">{statusMessage}</p>}
+          {errorMessage && <p className="form-message form-message--error">{errorMessage}</p>}
+          {statusMessage && <p className="form-message">{statusMessage}</p>}
 
-        <button disabled={isSubmitting} type="submit">
-          {isSubmitting ? "Отправляем..." : "Добавить комментарий"}
-        </button>
-      </form>
+          <button disabled={isSubmitting} type="submit">
+            {isSubmitting ? "Отправляем..." : "Добавить комментарий"}
+          </button>
+        </form>
+      )}
     </section>
   );
 }
