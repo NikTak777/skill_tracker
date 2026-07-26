@@ -75,6 +75,11 @@ export async function getTasks(params = {}) {
   return response.data;
 }
 
+export async function getTask(taskId) {
+  const response = await api.get(`/tasks/${taskId}/`);
+  return withDoneProgress(response.data);
+}
+
 export function getApiList(data) {
   if (Array.isArray(data)) {
     return data;

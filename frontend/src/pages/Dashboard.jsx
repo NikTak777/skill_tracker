@@ -9,12 +9,15 @@ import {
   getEmployees,
   getMe,
   getSkills,
+  getTask,
   getTasksByStatusFilter,
   updateTask,
 } from "../api.js";
 import getApiErrorMessage from "../utils/getApiErrorMessage.js";
 import { getTaskProgress, isTaskCompleted } from "../utils/taskProgress.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import { TASKS_REFRESH_EVENT } from "../components/NewTaskNotificationPoller.jsx";
+import { OPEN_TASK_EVENT } from "../components/NotificationStack.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
 import { useSession } from "../context/SessionContext.jsx";
@@ -303,6 +306,47 @@ export default function Dashboard() {
   useEffect(() => {
     loadDashboardData();
   }, [session.role, session.username]);
+
+  useEffect(() => {
+    function handleTasksRefresh() {
+      loadDashboardData({ soft: true });
+    }
+
+    window.addEventListener(TASKS_REFRESH_EVENT, handleTasksRefresh);
+    return () => window.removeEventListener(TASKS_REFRESH_EVENT, handleTasksRefresh);
+  }, []);
+
+  useEffect(() => {
+    async function handleOpenTaskEvent(event) {
+      const taskId = Number(event.detail?.taskId);
+      if (!taskId) {
+        return;
+      }
+
+      const localTask = [
+        ...overviewActiveTasks,
+        ...overviewDoneTasks,
+        ...activeTasks,
+        ...doneTasks,
+      ].find((task) => task.id === taskId);
+
+      if (localTask) {
+        setSelectedTask(localTask);
+        return;
+      }
+
+      try {
+        const task = await getTask(taskId);
+        setSelectedTask(task);
+        await loadDashboardData({ soft: true });
+      } catch {
+        // Задача недоступна или ещё не подгрузилась.
+      }
+    }
+
+    window.addEventListener(OPEN_TASK_EVENT, handleOpenTaskEvent);
+    return () => window.removeEventListener(OPEN_TASK_EVENT, handleOpenTaskEvent);
+  }, [activeTasks, doneTasks, overviewActiveTasks, overviewDoneTasks]);
 
   function updateField(event) {
     const { name, value } = event.target;

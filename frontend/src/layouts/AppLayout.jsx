@@ -1,12 +1,14 @@
 import { Outlet, useNavigate } from "react-router-dom";
 
+import NewTaskNotificationPoller from "../components/NewTaskNotificationPoller.jsx";
 import Navbar from "../components/Navbar.jsx";
+import NotificationStack from "../components/NotificationStack.jsx";
 import { useSession } from "../context/SessionContext.jsx";
 
 
 export default function AppLayout() {
   const navigate = useNavigate();
-  const { handleLogout, session } = useSession();
+  const { authChecked, handleLogout, session } = useSession();
 
   return (
     <main className="page">
@@ -16,6 +18,10 @@ export default function AppLayout() {
         session={session}
       />
       <Outlet />
+      {authChecked && session.isAuthenticated && session.role === "employee" && (
+        <NewTaskNotificationPoller />
+      )}
+      <NotificationStack />
     </main>
   );
 }
