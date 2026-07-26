@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { getMe, getTasksWithProgress, updateTask } from "../api.js";
 import getApiErrorMessage from "../utils/getApiErrorMessage.js";
+import { getTaskProgress } from "../utils/taskProgress.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import TaskCard from "../components/TaskCard.jsx";
 import TaskDetailModal from "../components/TaskDetailModal.jsx";
@@ -22,14 +23,6 @@ const STATUS_ACTION_LABELS = {
   todo: "Взять в работу",
   in_progress: "Завершить",
 };
-
-function getTaskProgress(task) {
-  if (typeof task.progress === "number") {
-    return task.progress;
-  }
-
-  return 0;
-}
 
 export default function EmployeeTasks() {
   const { session } = useSession();
@@ -78,7 +71,10 @@ export default function EmployeeTasks() {
     setUpdatingTaskId(task.id);
 
     try {
-      await updateTask(task.id, { status: nextStatus });
+      const updatedTask = await updateTask(task.id, { status: nextStatus });
+      setEmployeeTasks((current) => current.map((item) => (
+        item.id === task.id ? updatedTask : item
+      )));
       await loadEmployeeData();
     } catch (error) {
       setStatusError(getApiErrorMessage(error, "Не удалось обновить статус задачи."));

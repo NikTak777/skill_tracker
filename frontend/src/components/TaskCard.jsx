@@ -1,4 +1,5 @@
 import ProgressBar from "./ProgressBar.jsx";
+import { getTaskProgress } from "../utils/taskProgress.js";
 
 
 function getPersonName(person) {
@@ -24,18 +25,6 @@ function getSkillName(skill) {
   }
 
   return skill.name || "";
-}
-
-function getTaskProgress(task) {
-  if (typeof task.progress === "number") {
-    return task.progress;
-  }
-
-  if (Array.isArray(task.progress_entries) && task.progress_entries.length > 0) {
-    return task.progress_entries[0].percent;
-  }
-
-  return 0;
 }
 
 const STATUS_LABELS = {

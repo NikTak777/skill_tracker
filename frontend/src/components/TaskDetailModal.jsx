@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { createProgress, getProgress } from "../api.js";
 import getApiErrorMessage from "../utils/getApiErrorMessage.js";
+import { getTaskProgress } from "../utils/taskProgress.js";
 import CommentSection from "./CommentSection.jsx";
 import LoadingSpinner from "./LoadingSpinner.jsx";
 import ProgressBar from "./ProgressBar.jsx";
@@ -57,14 +58,6 @@ function formatDate(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function getLatestProgressPercent(entries) {
-  if (entries.length === 0) {
-    return 0;
-  }
-
-  return entries[0].percent || 0;
 }
 
 export default function TaskDetailModal({
@@ -126,14 +119,20 @@ export default function TaskDetailModal({
     setIsSubmitting(true);
 
     try {
+      const percent = Number(progressForm.percent);
+
       await createProgress({
         task: task.id,
-        percent: Number(progressForm.percent),
+        percent,
         note: progressForm.note.trim(),
       });
 
       setProgressForm(INITIAL_PROGRESS_FORM);
-      setFormStatus("Прогресс сохранён.");
+      setFormStatus(
+        percent === 100
+          ? "Прогресс 100%. Задача автоматически завершена."
+          : "Прогресс сохранён.",
+      );
       await loadProgress();
       onUpdated?.();
     } catch (error) {
@@ -143,7 +142,7 @@ export default function TaskDetailModal({
     }
   }
 
-  const latestProgress = getLatestProgressPercent(progressEntries);
+  const latestProgress = getTaskProgress(task);
   const skill = getSkillName(task.skill);
   const employee = getPersonName(task.employee) || task.owner;
   const manager = getPersonName(task.manager);
